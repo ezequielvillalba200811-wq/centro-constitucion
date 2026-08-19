@@ -115,7 +115,48 @@ app.put('/api/admin/courses',auth,(req,res)=>{courses=req.body.courses;res.json(
 app.put('/api/admin/products',auth,(req,res)=>{products=req.body.products;res.json({ok:true})});
 
 const css = `
-*{box-sizing:border-box}body{margin:0;font-family:Arial;background:#f7f3ee;color:#181818}a{text-decoration:none;color:inherit}.c{width:min(1120px,calc(100% - 30px));margin:auto}header{position:sticky;top:0;background:#f7f3eef5;border-bottom:1px solid #e5ddd4;z-index:5}.nav{height:72px;display:flex;align-items:center;justify-content:space-between}.logo{width:42px;height:42px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;background:#fff}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial;background:#f7f3ee;color:#181818}
+a{text-decoration:none;color:inherit}
+.c{width:min(1120px,calc(100% - 30px));margin:auto}
+header{position:sticky;top:0;background:#f7f3eef5;border-bottom:1px solid #e5ddd4;z-index:5}
+.nav{height:72px;display:flex;align-items:center;justify-content:space-between}
+.logo{width:42px;height:42px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;background:#fff}
+.hero{padding:70px 0}
+.heroGrid{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+h1{font-family:Georgia;font-size:clamp(48px,7vw,86px);line-height:.95;margin:10px 0}
+h2{font-family:Georgia;font-size:42px}
+.muted{color:#716c66}
+.heroCard{height:430px;border-radius:32px;background:linear-gradient(145deg,#111,#342b23);color:#fff;padding:28px;display:flex;flex-direction:column;justify-content:space-between}
+.heroCard b{font-family:Georgia;font-size:46px}
+.sec{padding:80px 0}
+.soft{background:#efe7dd}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:#fff;border:1px solid #e5ddd4;border-radius:24px;padding:22px}
+.tag{display:inline-block;background:#f2ece5;border-radius:999px;padding:7px 10px;font-size:12px;margin:4px}
+.btn{border:0;border-radius:999px;padding:13px 18px;font-weight:800;cursor:pointer}
+.pri{background:#171717;color:#fff}
+.secbtn{background:#fff;border:1px solid #ddd}
+.form{background:#fff;padding:24px;border-radius:24px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;font-weight:800;margin-bottom:6px}
+input,select,textarea{width:100%;padding:13px;border:1px solid #ddd;border-radius:12px}
+.signup{display:grid;grid-template-columns:.85fr 1.15fr;gap:40px}
+.product{background:#fff;border-radius:22px;overflow:hidden;border:1px solid #ddd}
+.pic{height:180px;background:#e8ddd1;display:grid;place-items:center;font-size:58px}
+.pb{padding:18px}
+.drawer{position:fixed;inset:0;background:#0008;display:none;justify-content:flex-end;z-index:10}
+.drawer.open{display:flex}
+.panel{width:min(430px,100%);height:100%;background:#fff;padding:22px;overflow:auto}
+.row{padding:12px 0;border-bottom:1px solid #ddd}
+.admin{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.login{min-height:100vh;display:grid;place-items:center}
+.loginBox{width:min(420px,calc(100% - 30px));background:#fff;padding:28px;border-radius:24px}
+@media(max-width:800px){
+  .heroGrid,.grid2,.grid3,.signup,.admin{grid-template-columns:1fr}
+  .heroCard{height:320px}
+}
 `;
 const home = `
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Centro Constitución</title><style>${css}</style></head><body>
