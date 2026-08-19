@@ -62,9 +62,10 @@ app.post('/api/signup',async(req,res)=>{
   try{
     const p=await createPref(`Inscripción ${c.name}`,c.inscription,x.id,x.email,x.name);
     res.json({checkoutUrl:p.init_point||p.sandbox_init_point});
-  }catch{
-    res.status(503).json({message:'Inscripción guardada. Falta conectar Mercado Pago.'});
-  }
+  }catch(e){
+  console.error('Mercado Pago signup error:', e);
+  res.status(503).json({message:'Mercado Pago: '+e.message});
+}
 });
 app.post('/api/order',async(req,res)=>{
   let total=0;
