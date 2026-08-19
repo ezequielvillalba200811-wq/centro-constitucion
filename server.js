@@ -116,7 +116,7 @@ app.put('/api/admin/products',auth,(req,res)=>{products=req.body.products;res.js
 
 const css = `
 *{box-sizing:border-box}body{margin:0;font-family:Arial;background:#f7f3ee;color:#181818}a{text-decoration:none;color:inherit}.c{width:min(1120px,calc(100% - 30px));margin:auto}header{position:sticky;top:0;background:#f7f3eef5;border-bottom:1px solid #e5ddd4;z-index:5}.nav{height:72px;display:flex;align-items:center;justify-content:space-between}.logo{width:42px;height:42px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;background:#fff}
-
+`;
 const home = `
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Centro Constitución</title><style>${css}</style></head><body>
 <header><div class="c nav"><div><img class="logo" src="/IMG_5279.jpeg" alt="Centro Constitución"><b>Centro Constitución</b></div><a href="/admin">Panel</a></div></header>
