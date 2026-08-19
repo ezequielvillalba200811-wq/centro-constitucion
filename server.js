@@ -11,7 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-secreto';
 
 app.use(express.json());
 app.use(cookieParser());
-
+app.get('/IMG_5279.jpeg',(_req,res)=>res.sendFile(process.cwd()+'/IMG_5279.jpeg'));
 let courses = [
   {id:'barberia',icon:'💈',name:'Barbería',description:'Aprendé técnicas de corte masculino con máquina, tijera y navaja.',schedules:['Martes de 16 a 18 hs','Sábados de 9 a 11 hs','Sábados de 11 a 13 hs'],inscription:20000,monthly:80000},
   {id:'peluqueria',icon:'💇‍♀️',name:'Peluquería',description:'Formación integral con práctica, corte, brushing, peinados y tratamientos.',schedules:['Miércoles de 15 a 18 hs','Sábados de 9 a 12 hs'],inscription:20000,monthly:80000},
