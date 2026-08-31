@@ -3938,211 +3938,130 @@ error.message;
 
 function renderCourses(){
 
-$('#adminCourses')
-.innerHTML =
-db.courses
-.map(
-(course,index) => {
+var html = '';
 
-const detail =
-db.courseDetails?.[
-course.id
-] || {};
+db.courses.forEach(function(course,index){
 
-const syllabus =
-Array.isArray(
-detail.syllabus
-)
-?
-detail.syllabus.join(' | ')
-:
-'';
+var detail =
+(db.courseDetails &&
+db.courseDetails[course.id])
+? db.courseDetails[course.id]
+: {};
 
-const schedules =
-Array.isArray(
-course.schedules
-)
-?
-course.schedules.join(' | ')
-:
-'';
+var syllabus =
+Array.isArray(detail.syllabus)
+? detail.syllabus.join(' | ')
+: '';
 
-return ` +
-"`" + `
-<div
-class="adminCourse"
-data-course="${index}"
->
+var schedules =
+Array.isArray(course.schedules)
+? course.schedules.join(' | ')
+: '';
 
-<h3>
-${escapeHtml(course.name)}
-</h3>
+html +=
+'<div class="adminCourse" data-course="' + index + '">' +
 
-<div class="field">
+'<h3>' +
+escapeHtml(course.name) +
+'</h3>' +
 
-<label>
-Nombre del curso
-</label>
+'<div class="field">' +
+'<label>Nombre del curso</label>' +
+'<input class="courseName" value="' +
+escapeHtml(course.name) +
+'">' +
+'</div>' +
 
-<input
-class="courseName"
-value="${escapeHtml(course.name)}"
->
+'<div class="field">' +
+'<label>Descripción corta</label>' +
+'<textarea class="courseDescription">' +
+escapeHtml(course.description || '') +
+'</textarea>' +
+'</div>' +
 
-</div>
+'<div class="field">' +
+'<label>Foto del curso</label>' +
+'<input class="courseImageFile" type="file" accept="image/*">' +
+'<img class="coursePreview" src="' +
+escapeHtml(detail.image || '') +
+'" style="' +
+(detail.image ? '' : 'display:none') +
+'">' +
+'</div>' +
 
-<div class="field">
+'<div class="field">' +
+'<label>Descripción completa</label>' +
+'<textarea class="courseLongDescription">' +
+escapeHtml(detail.longDescription || '') +
+'</textarea>' +
+'</div>' +
 
-<label>
-Descripción corta
-</label>
+'<div class="field">' +
+'<label>Duración</label>' +
+'<input class="courseDuration" value="' +
+escapeHtml(detail.duration || '') +
+'" placeholder="Ej: 4 meses">' +
+'</div>' +
 
-<textarea class="courseDescription">${escapeHtml(course.description || '')}</textarea>
+'<div class="field">' +
+'<label>Temario</label>' +
+'<textarea class="courseSyllabus" placeholder="Separá cada tema con |">' +
+escapeHtml(syllabus) +
+'</textarea>' +
+'</div>' +
 
-</div>
+'<div class="field">' +
+'<label>Horarios</label>' +
+'<textarea class="courseSchedules" placeholder="Separá cada horario con |">' +
+escapeHtml(schedules) +
+'</textarea>' +
+'</div>' +
 
-<div class="field">
+'<div class="field">' +
+'<label>Inscripción</label>' +
+'<input class="courseInscription" type="number" value="' +
+Number(course.inscription || 0) +
+'">' +
+'</div>' +
 
-<label>
-Foto del curso
-</label>
+'<div class="field">' +
+'<label>Cuota</label>' +
+'<input class="courseMonthly" type="number" value="' +
+Number(course.monthly || 0) +
+'">' +
+'</div>' +
 
-<input
-class="courseImageFile"
-type="file"
-accept="image/*"
->
+'<button class="btn pri saveCourse">Guardar curso</button>' +
 
-<img
-class="coursePreview"
-src="${escapeHtml(detail.image || '')}"
-style="${detail.image ? '' : 'display:none'}"
->
+'<p class="courseMsg"></p>' +
 
-</div>
+'</div>';
 
-<div class="field">
+});
 
-<label>
-Descripción completa
-</label>
-
-<textarea class="courseLongDescription">${escapeHtml(detail.longDescription || '')}</textarea>
-
-</div>
-
-<div class="field">
-
-<label>
-Duración
-</label>
-
-<input
-class="courseDuration"
-value="${escapeHtml(detail.duration || '')}"
-placeholder="Ej: 4 meses"
->
-
-</div>
-
-<div class="field">
-
-<label>
-Temario
-</label>
-
-<textarea
-class="courseSyllabus"
-placeholder="Separá cada tema con |"
->${escapeHtml(syllabus)}</textarea>
-
-</div>
-
-<div class="field">
-
-<label>
-Horarios
-</label>
-
-<textarea
-class="courseSchedules"
-placeholder="Separá cada horario con |"
->${escapeHtml(schedules)}</textarea>
-
-</div>
-
-<div class="field">
-
-<label>
-Inscripción
-</label>
-
-<input
-class="courseInscription"
-type="number"
-value="${Number(course.inscription || 0)}"
->
-
-</div>
-
-<div class="field">
-
-<label>
-Cuota
-</label>
-
-<input
-class="courseMonthly"
-type="number"
-value="${Number(course.monthly || 0)}"
->
-
-</div>
-
-<button
-class="btn pri saveCourse"
->
-
-Guardar curso
-
-</button>
-
-<p class="courseMsg"></p>
-
-</div>
-` + "`" + `;
-
-}
-)
-.join('');
+$('#adminCourses').innerHTML = html;
 
 document
-.querySelectorAll(
-'.adminCourse'
-)
-.forEach(
-card => {
+.querySelectorAll('.adminCourse')
+.forEach(function(card){
 
-const index =
-Number(
-card.dataset.course
-);
+var index =
+Number(card.dataset.course);
 
-const course =
-db.courses[
-index
-];
+var course =
+db.courses[index];
 
-const fileInput =
+var fileInput =
 card.querySelector(
 '.courseImageFile'
 );
 
 fileInput.onchange =
-event => {
+function(event){
 
-const file =
-event.target.files?.[0];
+var file =
+event.target.files &&
+event.target.files[0];
 
 if(!file){
 return;
@@ -4150,44 +4069,28 @@ return;
 
 compressImage(
 file,
-1000,
-0.72,
-result => {
+800,
+0.65,
+function(result){
 
-if(
-!db.courseDetails
-){
-
-db.courseDetails =
-{};
-
+if(!db.courseDetails){
+db.courseDetails = {};
 }
 
-if(
-!db.courseDetails[
-course.id
-]
-){
-
-db.courseDetails[
-course.id
-] =
-{};
-
+if(!db.courseDetails[course.id]){
+db.courseDetails[course.id] = {};
 }
 
 db.courseDetails[
 course.id
-].image =
-result;
+].image = result;
 
-const preview =
+var preview =
 card.querySelector(
 '.coursePreview'
 );
 
-preview.src =
-result;
+preview.src = result;
 
 preview.style.display =
 'block';
@@ -4200,9 +4103,9 @@ preview.style.display =
 card.querySelector(
 '.saveCourse'
 ).onclick =
-async () => {
+async function(){
 
-const msg =
+var msg =
 card.querySelector(
 '.courseMsg'
 );
@@ -4239,22 +4142,16 @@ card.querySelector(
 '.courseSchedules'
 ).value
 .split('|')
-.map(
-item =>
-item.trim()
-)
+.map(function(item){
+return item.trim();
+})
 .filter(Boolean);
 
-if(
-!db.courseDetails
-){
-
-db.courseDetails =
-{};
-
+if(!db.courseDetails){
+db.courseDetails = {};
 }
 
-const oldDetail =
+var oldDetail =
 db.courseDetails[
 course.id
 ] || {};
@@ -4280,10 +4177,9 @@ card.querySelector(
 '.courseSyllabus'
 ).value
 .split('|')
-.map(
-item =>
-item.trim()
-)
+.map(function(item){
+return item.trim();
+})
 .filter(Boolean)
 
 };
@@ -4296,7 +4192,6 @@ api(
 '/api/admin/courses',
 {
 method:'PUT',
-
 body:
 JSON.stringify({
 courses:
@@ -4309,7 +4204,6 @@ api(
 '/api/admin/course-details',
 {
 method:'PUT',
-
 body:
 JSON.stringify({
 courseDetails:
@@ -4332,146 +4226,126 @@ error.message;
 
 };
 
-}
-);
+});
 
 }
+
 /* =====================================
    PRODUCTOS ADMIN
 ===================================== */
 
 function renderProducts(){
 
-$('#adminProducts')
-.innerHTML =
-db.products
-.map(
-(product,index) => {
+var html = '';
 
-const image =
+db.products.forEach(
+function(product,index){
+
+var image =
 product.emoji || '';
 
-return `
-<div
-class="card"
-data-product="${index}"
->
+var pictureHtml = '';
 
-<h3>
-${escapeHtml(product.name)}
-</h3>
-
-<div class="field">
-
-<label>
-Nombre
-</label>
-
-<input
-class="productName"
-value="${escapeHtml(product.name)}"
->
-
-</div>
-
-<div class="field">
-
-<label>
-Foto del producto
-</label>
-
-<input
-class="productImageFile"
-type="file"
-accept="image/*"
->
-
-<div class="pic productPreview">
-
-${
+if(
 image.startsWith('data:image/') ||
 image.startsWith('https://') ||
 image.startsWith('http://')
-?
-`<img src="${escapeHtml(image)}">`
-:
-escapeHtml(image || '🛍️')
-}
+){
 
-</div>
+pictureHtml =
+'<img src="' +
+escapeHtml(image) +
+'">';
 
-</div>
+}else{
 
-<div class="field">
-
-<label>
-Precio
-</label>
-
-<input
-class="productPrice"
-type="number"
-value="${Number(product.price || 0)}"
->
-
-</div>
-
-<div class="field">
-
-<label>
-Stock
-</label>
-
-<input
-class="productStock"
-type="number"
-value="${Number(product.stock || 0)}"
->
-
-</div>
-
-<button
-class="btn pri saveProduct"
->
-Guardar producto
-</button>
-
-<p class="productMsg"></p>
-
-</div>
-`;
+pictureHtml =
+escapeHtml(
+image || '🛍️'
+);
 
 }
-)
-.join('');
+
+html +=
+'<div class="card" data-product="' +
+index +
+'">' +
+
+'<h3>' +
+escapeHtml(product.name) +
+'</h3>' +
+
+'<div class="field">' +
+'<label>Nombre</label>' +
+'<input class="productName" value="' +
+escapeHtml(product.name) +
+'">' +
+'</div>' +
+
+'<div class="field">' +
+'<label>Foto del producto</label>' +
+'<input class="productImageFile" type="file" accept="image/*">' +
+
+'<div class="pic productPreview">' +
+pictureHtml +
+'</div>' +
+
+'</div>' +
+
+'<div class="field">' +
+'<label>Precio</label>' +
+'<input class="productPrice" type="number" value="' +
+Number(product.price || 0) +
+'">' +
+'</div>' +
+
+'<div class="field">' +
+'<label>Stock</label>' +
+'<input class="productStock" type="number" value="' +
+Number(product.stock || 0) +
+'">' +
+'</div>' +
+
+'<button class="btn pri saveProduct">' +
+'Guardar producto' +
+'</button>' +
+
+'<p class="productMsg"></p>' +
+
+'</div>';
+
+}
+);
+
+$('#adminProducts')
+.innerHTML = html;
 
 document
 .querySelectorAll(
 '[data-product]'
 )
 .forEach(
-card => {
+function(card){
 
-const index =
+var index =
 Number(
 card.dataset.product
 );
 
-const product =
-db.products[
-index
-];
+var product =
+db.products[index];
 
-const fileInput =
+var fileInput =
 card.querySelector(
 '.productImageFile'
 );
 
 fileInput.onchange =
-event => {
+function(event){
 
-const file =
-event.target.files?.[0];
+var file =
+event.target.files &&
+event.target.files[0];
 
 if(!file){
 return;
@@ -4479,9 +4353,9 @@ return;
 
 compressImage(
 file,
-850,
-0.7,
-result => {
+750,
+0.65,
+function(result){
 
 product.emoji =
 result;
@@ -4501,9 +4375,9 @@ result +
 card.querySelector(
 '.saveProduct'
 ).onclick =
-async () => {
+async function(){
 
-const msg =
+var msg =
 card.querySelector(
 '.productMsg'
 );
@@ -4573,41 +4447,37 @@ if(
 !db.signups.length
 ){
 
-$('#students')
-.innerHTML =
+$('#students').innerHTML =
 '<div class="card"><p>Todavía no hay inscripciones.</p></div>';
 
 return;
 
 }
 
-$('#students')
-.innerHTML =
-db.signups
-.map(
-signup => {
+var html = '';
 
-const statusClass =
+db.signups.forEach(
+function(signup){
+
+var statusClass =
 signup.status === 'approved'
-?
-'approved'
-:
-'pending';
+? 'approved'
+: 'pending';
 
-const statusText =
+var statusText =
 signup.status === 'approved'
-?
-'Pago aprobado'
-:
-signup.status || 'Pendiente';
+? 'Pago aprobado'
+: signup.status || 'Pendiente';
 
-const whatsapp =
+var whatsapp =
 String(
 signup.phone || ''
-)
-.replace(/\D/g,'');
+).replace(
+/\D/g,
+''
+);
 
-let whatsappNumber =
+var whatsappNumber =
 whatsapp;
 
 if(
@@ -4620,64 +4490,74 @@ whatsappNumber;
 
 }
 
-return `
-<div class="student">
+html +=
+'<div class="student">' +
 
-<h3>
-${escapeHtml(signup.name || '')}
-${escapeHtml(signup.lastname || '')}
-</h3>
+'<h3>' +
+escapeHtml(signup.name || '') +
+' ' +
+escapeHtml(signup.lastname || '') +
+'</h3>' +
 
-<p>
-<b>Documento:</b>
-${escapeHtml(signup.document_number || '')}
-</p>
+'<p><b>Documento:</b> ' +
+escapeHtml(
+signup.document_number || ''
+) +
+'</p>' +
 
-<p>
-<b>Fecha de nacimiento:</b>
-${escapeHtml(signup.birth_date || '')}
-</p>
+'<p><b>Fecha de nacimiento:</b> ' +
+escapeHtml(
+signup.birth_date || ''
+) +
+'</p>' +
 
-<p>
-<b>WhatsApp:</b>
-${escapeHtml(signup.phone || '')}
-</p>
+'<p><b>WhatsApp:</b> ' +
+escapeHtml(
+signup.phone || ''
+) +
+'</p>' +
 
-<p>
-<b>Curso:</b>
-${escapeHtml(signup.course_name || '')}
-</p>
+'<p><b>Curso:</b> ' +
+escapeHtml(
+signup.course_name || ''
+) +
+'</p>' +
 
-<p>
-<b>Horario:</b>
-${escapeHtml(signup.schedule || '')}
-</p>
+'<p><b>Horario:</b> ' +
+escapeHtml(
+signup.schedule || ''
+) +
+'</p>' +
 
-<p>
-<b>Importe:</b>
-${money(Number(signup.amount || 0))}
-</p>
+'<p><b>Importe:</b> ' +
+money(
+Number(
+signup.amount || 0
+)
+) +
+'</p>' +
 
-<span class="status ${statusClass}">
-${escapeHtml(statusText)}
-</span>
+'<span class="status ' +
+statusClass +
+'">' +
+escapeHtml(statusText) +
+'</span>' +
 
-<br><br>
+'<br><br>' +
 
-<a
-class="btn green"
-target="_blank"
-href="https://wa.me/${whatsappNumber}"
->
-Hablar por WhatsApp
-</a>
+'<a class="btn green" target="_blank" href="https://wa.me/' +
+whatsappNumber +
+'">' +
+'Hablar por WhatsApp' +
+'</a>' +
 
-</div>
-`;
+'</div>';
 
 }
-)
-.join('');
+);
+
+$('#students')
+.innerHTML = html;
 
 }
 
@@ -4687,7 +4567,7 @@ Hablar por WhatsApp
 
 loadAdmin()
 .catch(
-error => {
+function(error){
 
 console.error(
 error
@@ -4749,7 +4629,8 @@ PORT,
 () => {
 
 console.log(
-`Centro Constitución funcionando en puerto ${PORT}`
+'Centro Constitución funcionando en puerto ' +
+PORT
 );
 
 }
