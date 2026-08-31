@@ -4,107 +4,158 @@ import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
 
 const app = express();
+
 const PORT = process.env.PORT || 3000;
-const PUBLIC_URL = (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/,'');
-const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-secreto';
+const PUBLIC_URL = (
+  process.env.PUBLIC_URL ||
+  `http://localhost:${PORT}`
+).replace(/\/$/, '');
 
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/,'');
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || '';
+const JWT_SECRET =
+  process.env.JWT_SECRET || 'cambiar-secreto';
 
-app.use(express.json());
+const SUPABASE_URL = (
+  process.env.SUPABASE_URL || ''
+).replace(/\/$/, '');
+
+const SUPABASE_SECRET_KEY =
+  process.env.SUPABASE_SECRET_KEY || '';
+
+const MP_ACCESS_TOKEN =
+  process.env.MP_ACCESS_TOKEN || '';
+
+const BUSINESS_WHATSAPP = '5491166061100';
+
+app.use(express.json({ limit: '8mb' }));
 app.use(cookieParser());
 
-app.get('/IMG_5279.jpeg',(_req,res)=>
-  res.sendFile(process.cwd()+'/IMG_5279.jpeg')
-);
+app.get('/IMG_5279.jpeg', (_req, res) => {
+  res.sendFile(process.cwd() + '/IMG_5279.jpeg');
+});
+
+/* =========================
+   DATOS PREDETERMINADOS
+========================= */
 
 const defaultCourses = [
   {
-    id:'barberia',
-    icon:'💈',
-    name:'Barbería',
-    description:'Aprendé técnicas de corte masculino con máquina, tijera y navaja.',
-    schedules:[
+    id: 'barberia',
+    icon: '💈',
+    name: 'Barbería',
+    description:
+      'Aprendé técnicas de corte masculino con máquina, tijera y navaja.',
+    schedules: [
       'Martes de 16 a 18 hs',
       'Sábados de 9 a 11 hs',
       'Sábados de 11 a 13 hs'
     ],
-    inscription:20000,
-    monthly:80000
+    inscription: 20000,
+    monthly: 80000
   },
   {
-    id:'peluqueria',
-    icon:'💇‍♀️',
-    name:'Peluquería',
-    description:'Formación integral con práctica, corte, brushing, peinados y tratamientos.',
-    schedules:[
+    id: 'peluqueria',
+    icon: '💇‍♀️',
+    name: 'Peluquería',
+    description:
+      'Formación integral con práctica, corte, brushing, peinados y tratamientos.',
+    schedules: [
       'Miércoles de 15 a 18 hs',
       'Sábados de 9 a 12 hs'
     ],
-    inscription:20000,
-    monthly:80000
+    inscription: 20000,
+    monthly: 80000
   },
   {
-    id:'colorimetria',
-    icon:'🎨',
-    name:'Colorimetría',
-    description:'Formación profesional en color y diagnóstico.',
-    schedules:['Horario próximamente'],
-    inscription:20000,
-    monthly:80000
+    id: 'colorimetria',
+    icon: '🎨',
+    name: 'Colorimetría',
+    description:
+      'Formación profesional en color y diagnóstico.',
+    schedules: ['Horario próximamente'],
+    inscription: 20000,
+    monthly: 80000
   },
   {
-    id:'manicuria',
-    icon:'💅',
-    name:'Manicuría y Pedicuría',
-    description:'Manicuría, pedicuría y esmaltado tradicional y semipermanente.',
-    schedules:['Horario próximamente'],
-    inscription:20000,
-    monthly:80000
+    id: 'manicuria',
+    icon: '💅',
+    name: 'Manicuría y Pedicuría',
+    description:
+      'Manicuría, pedicuría y esmaltado tradicional y semipermanente.',
+    schedules: ['Horario próximamente'],
+    inscription: 20000,
+    monthly: 80000
   }
 ];
 
 const defaultProducts = [
-  {id:'p1',emoji:'✂️',name:'Tijera profesional',price:45000,stock:10},
-  {id:'p2',emoji:'🪒',name:'Máquina de corte',price:90000,stock:8},
-  {id:'p3',emoji:'💨',name:'Secador profesional',price:70000,stock:6}
+  {
+    id: 'p1',
+    emoji: '✂️',
+    name: 'Tijera profesional',
+    price: 45000,
+    stock: 10
+  },
+  {
+    id: 'p2',
+    emoji: '🪒',
+    name: 'Máquina de corte',
+    price: 90000,
+    stock: 8
+  },
+  {
+    id: 'p3',
+    emoji: '💨',
+    name: 'Secador profesional',
+    price: 70000,
+    stock: 6
+  }
 ];
 
-let signups = [];
 let orders = [];
 
-function supabaseHeaders(extra={}) {
+/* =========================
+   SUPABASE
+========================= */
+
+function supabaseHeaders(extra = {}) {
   return {
     apikey: SUPABASE_SECRET_KEY,
     Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-    'Content-Type':'application/json',
+    'Content-Type': 'application/json',
     ...extra
   };
 }
 
-async function supabaseRequest(path,options={}) {
-  if(!SUPABASE_URL || !SUPABASE_SECRET_KEY){
-    throw new Error('SUPABASE_NOT_CONFIGURED');
+async function supabaseRequest(path, options = {}) {
+  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
+    throw new Error('Supabase no está configurado.');
   }
 
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{
-    ...options,
-    headers:supabaseHeaders(options.headers || {})
-  });
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/${path}`,
+    {
+      ...options,
+      headers: supabaseHeaders(
+        options.headers || {}
+      )
+    }
+  );
 
-  const text = await r.text();
+  const text = await response.text();
+
   let data = null;
 
-  if(text){
-    try{
+  if (text) {
+    try {
       data = JSON.parse(text);
-    }catch{
+    } catch {
       data = text;
     }
   }
 
-  if(!r.ok){
-    console.error('Supabase error:',data);
+  if (!response.ok) {
+    console.error('Supabase:', data);
+
     throw new Error(
       data?.message ||
       data?.error ||
@@ -116,564 +167,1463 @@ async function supabaseRequest(path,options={}) {
 }
 
 async function getCourses() {
-  try{
+  try {
     const data = await supabaseRequest(
       'courses?select=*&order=name.asc'
     );
-    return Array.isArray(data) && data.length
-      ? data
-      : defaultCourses;
-  }catch(e){
-    console.error('Error cargando cursos:',e.message);
-    return defaultCourses;
+
+    if (Array.isArray(data) && data.length) {
+      return data;
+    }
+  } catch (e) {
+    console.error(
+      'Cursos:',
+      e.message
+    );
   }
+
+  return defaultCourses;
 }
 
 async function getProducts() {
-  try{
+  try {
     const data = await supabaseRequest(
       'products?select=*&order=name.asc'
     );
-    return Array.isArray(data) && data.length
-      ? data
-      : defaultProducts;
-  }catch(e){
-    console.error('Error cargando productos:',e.message);
-    return defaultProducts;
+
+    if (Array.isArray(data) && data.length) {
+      return data;
+    }
+  } catch (e) {
+    console.error(
+      'Productos:',
+      e.message
+    );
   }
+
+  return defaultProducts;
 }
 
 async function saveCourses(courses) {
-  await supabaseRequest('courses',{
-    method:'POST',
-    headers:{
-      Prefer:'resolution=merge-duplicates,return=representation'
-    },
-    body:JSON.stringify(courses)
-  });
+  return supabaseRequest(
+    'courses',
+    {
+      method: 'POST',
+      headers: {
+        Prefer:
+          'resolution=merge-duplicates,return=representation'
+      },
+      body: JSON.stringify(courses)
+    }
+  );
 }
 
 async function saveProducts(products) {
-  await supabaseRequest('products',{
-    method:'POST',
-    headers:{
-      Prefer:'resolution=merge-duplicates,return=representation'
-    },
-    body:JSON.stringify(products)
-  });
+  return supabaseRequest(
+    'products',
+    {
+      method: 'POST',
+      headers: {
+        Prefer:
+          'resolution=merge-duplicates,return=representation'
+      },
+      body: JSON.stringify(products)
+    }
+  );
 }
 
-async function mpRequest(path,options={}) {
-  if(!process.env.MP_ACCESS_TOKEN){
-    throw new Error('MP_NOT_CONFIGURED');
+/* =========================
+   INSCRIPCIONES
+========================= */
+
+async function createSignup(data) {
+  const result = await supabaseRequest(
+    'signups',
+    {
+      method: 'POST',
+      headers: {
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify(data)
+    }
+  );
+
+  return Array.isArray(result)
+    ? result[0]
+    : result;
+}
+
+async function getSignups() {
+  try {
+    return await supabaseRequest(
+      'signups?select=*&order=created_at.desc'
+    );
+  } catch (e) {
+    console.error(
+      'Inscripciones:',
+      e.message
+    );
+
+    return [];
+  }
+}
+
+async function updateSignupPayment(
+  signupId,
+  payment
+) {
+  return supabaseRequest(
+    `signups?id=eq.${encodeURIComponent(signupId)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        status:
+          payment.status === 'approved'
+            ? 'approved'
+            : payment.status,
+        payment_id: String(
+          payment.id || ''
+        )
+      })
+    }
+  );
+}
+
+/* =========================
+   MERCADO PAGO
+========================= */
+
+async function mpRequest(path, options = {}) {
+  if (!MP_ACCESS_TOKEN) {
+    throw new Error(
+      'Mercado Pago no está configurado.'
+    );
   }
 
-  const r = await fetch(
-    'https://api.mercadopago.com'+path,
+  const response = await fetch(
+    'https://api.mercadopago.com' + path,
     {
       ...options,
-      headers:{
-        Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`,
-        'Content-Type':'application/json'
+      headers: {
+        Authorization:
+          `Bearer ${MP_ACCESS_TOKEN}`,
+        'Content-Type':
+          'application/json'
       }
     }
   );
 
-  const d = await r.json();
+  const data = await response.json();
 
-  if(!r.ok){
-    throw new Error(d.message || 'Error Mercado Pago');
+  if (!response.ok) {
+    console.error(
+      'Mercado Pago:',
+      data
+    );
+
+    throw new Error(
+      data.message ||
+      'Error de Mercado Pago'
+    );
   }
 
-  return d;
+  return data;
 }
 
-async function createPref(title,amount,ref,email,name) {
-  return mpRequest('/checkout/preferences',{
-    method:'POST',
-    body:JSON.stringify({
-      items:[
-        {
-          title,
-          quantity:1,
-          currency_id:'ARS',
-          unit_price:Number(amount)
-        }
-      ],
-      external_reference:ref,
-      payer:{email,name},
-      back_urls:{
-        success:`${PUBLIC_URL}/?pay=success`,
-        pending:`${PUBLIC_URL}/?pay=pending`,
-        failure:`${PUBLIC_URL}/?pay=failure`
-      },
-      auto_return:'approved',
-      notification_url:`${PUBLIC_URL}/api/webhook`
-    })
-  });
-}
-
-app.get('/api/config',async(_req,res)=>{
-  const [courses,products] = await Promise.all([
-    getCourses(),
-    getProducts()
-  ]);
-
-  res.json({courses,products});
-});
-
-app.post('/api/signup',async(req,res)=>{
-  const courses = await getCourses();
-  const c = courses.find(x=>x.id===req.body.courseId);
-
-  if(!c){
-    return res.status(400).json({error:'Curso inválido'});
-  }
-
-  const x = {
-    id:'ins-'+Date.now(),
-    ...req.body,
-    courseName:c.name,
-    amount:c.inscription,
-    status:'pending'
-  };
-
-  signups.unshift(x);
-
-  try{
-    const p = await createPref(
-      `Inscripción ${c.name}`,
-      c.inscription,
-      x.id,
-      x.email,
-      x.name
-    );
-
-    res.json({
-      checkoutUrl:p.init_point || p.sandbox_init_point
-    });
-  }catch(e){
-    console.error('Mercado Pago signup error:',e);
-    res.status(503).json({
-      message:'Mercado Pago: '+e.message
-    });
-  }
-});
-
-app.post('/api/order',async(req,res)=>{
-  const products = await getProducts();
-  let total = 0;
-
-  for(const i of req.body.items || []){
-    const p = products.find(
-      x=>x.id===i.productId
-    );
-
-    if(!p){
-      return res.status(400).json({
-        error:'Producto inválido'
-      });
-    }
-
-    total += p.price * Number(i.qty || 1);
-  }
-
-  const o = {
-    id:'ped-'+Date.now(),
-    customer:req.body.customer,
-    items:req.body.items,
-    total,
-    status:'pending'
-  };
-
-  orders.unshift(o);
-
-  try{
-    const p = await createPref(
-      'Pedido Centro Constitución',
-      total,
-      o.id,
-      o.customer.email,
-      o.customer.name
-    );
-
-    res.json({
-      checkoutUrl:p.init_point || p.sandbox_init_point
-    });
-  }catch(e){
-    console.error('Mercado Pago order error:',e);
-
-    res.status(503).json({
-      message:'Pedido guardado. Mercado Pago no está disponible.'
-    });
-  }
-});
-
-app.post('/api/webhook',async(req,res)=>{
-  res.sendStatus(200);
-
-  try{
-    const id =
-      req.query['data.id'] ||
-      req.body?.data?.id;
-
-    if(!id)return;
-
-    const p = await mpRequest(
-      '/v1/payments/'+id
-    );
-
-    const ref = p.external_reference;
-
-    const s = signups.find(
-      x=>x.id===ref
-    );
-
-    if(s){
-      s.status =
-        p.status==='approved'
-        ? 'paid'
-        : p.status;
-      return;
-    }
-
-    const o = orders.find(
-      x=>x.id===ref
-    );
-
-    if(o){
-      o.status =
-        p.status==='approved'
-        ? 'paid'
-        : p.status;
-    }
-  }catch(e){
-    console.error('Webhook error:',e);
-  }
-});
-
-function auth(req,res,next){
-  try{
-    const t = req.cookies.admin;
-
-    if(!t){
-      return res.status(401).end();
-    }
-
-    jwt.verify(t,JWT_SECRET);
-    next();
-  }catch{
-    res.status(401).end();
-  }
-}
-
-app.post('/api/login',(req,res)=>{
-  const email =
-    process.env.ADMIN_EMAIL ||
-    'admin@centroconstitucion.com';
-
-  const pass =
-    process.env.ADMIN_PASSWORD ||
-    'Cambiar123!';
-
-  if(
-    req.body.email!==email ||
-    req.body.password!==pass
-  ){
-    return res.status(401).json({
-      error:'Datos incorrectos'
-    });
-  }
-
-  res.cookie(
-    'admin',
-    jwt.sign(
-      {email},
-      JWT_SECRET,
-      {expiresIn:'12h'}
-    ),
+async function createPreference({
+  title,
+  amount,
+  reference,
+  name
+}) {
+  return mpRequest(
+    '/checkout/preferences',
     {
-      httpOnly:true,
-      sameSite:'lax',
-      secure:PUBLIC_URL.startsWith('https://')
+      method: 'POST',
+      body: JSON.stringify({
+        items: [
+          {
+            title,
+            quantity: 1,
+            currency_id: 'ARS',
+            unit_price:
+              Number(amount)
+          }
+        ],
+
+        external_reference:
+          reference,
+
+        payer: name
+          ? { name }
+          : undefined,
+
+        back_urls: {
+          success:
+            `${PUBLIC_URL}/?pay=success`,
+          pending:
+            `${PUBLIC_URL}/?pay=pending`,
+          failure:
+            `${PUBLIC_URL}/?pay=failure`
+        },
+
+        auto_return: 'approved',
+
+        notification_url:
+          `${PUBLIC_URL}/api/webhook`
+      })
     }
   );
+}
 
-  res.json({ok:true});
-});
+/* =========================
+   CONFIGURACIÓN WEB
+========================= */
 
-app.get('/api/admin',auth,async(_req,res)=>{
-  const [courses,products] = await Promise.all([
-    getCourses(),
-    getProducts()
-  ]);
+app.get(
+  '/api/config',
+  async (_req, res) => {
+    const [courses, products] =
+      await Promise.all([
+        getCourses(),
+        getProducts()
+      ]);
 
-  res.json({
-    courses,
-    products,
-    signups,
-    orders
-  });
-});
-
-app.put('/api/admin/courses',auth,async(req,res)=>{
-  try{
-    if(!Array.isArray(req.body.courses)){
-      return res.status(400).json({
-        error:'Datos inválidos'
-      });
-    }
-
-    await saveCourses(req.body.courses);
-
-    res.json({ok:true});
-  }catch(e){
-    console.error(e);
-
-    res.status(500).json({
-      error:'No se pudieron guardar los cursos'
+    res.json({
+      courses,
+      products
     });
   }
-});
+);
 
-app.put('/api/admin/products',auth,async(req,res)=>{
-  try{
-    if(!Array.isArray(req.body.products)){
-      return res.status(400).json({
-        error:'Datos inválidos'
+/* =========================
+   NUEVA INSCRIPCIÓN
+========================= */
+
+app.post(
+  '/api/signup',
+  async (req, res) => {
+    try {
+      const {
+        name,
+        lastname,
+        documentNumber,
+        birthDate,
+        phone,
+        courseId,
+        schedule
+      } = req.body;
+
+      if (
+        !name ||
+        !lastname ||
+        !documentNumber ||
+        !birthDate ||
+        !phone ||
+        !courseId ||
+        !schedule
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              'Completá todos los datos.'
+          });
+      }
+
+      const courses =
+        await getCourses();
+
+      const course =
+        courses.find(
+          x => x.id === courseId
+        );
+
+      if (!course) {
+        return res
+          .status(400)
+          .json({
+            error:
+              'Curso inválido.'
+          });
+      }
+
+      const signup = {
+        id:
+          'ins-' +
+          Date.now() +
+          '-' +
+          Math.random()
+            .toString(36)
+            .slice(2, 7),
+
+        name:
+          String(name).trim(),
+
+        lastname:
+          String(lastname).trim(),
+
+        document_number:
+          String(
+            documentNumber
+          ).trim(),
+
+        birth_date:
+          birthDate,
+
+        phone:
+          String(phone).trim(),
+
+        course_id:
+          courseId,
+
+        course_name:
+          course.name,
+
+        schedule,
+
+        amount:
+          Number(
+            course.inscription
+          ),
+
+        status: 'pending'
+      };
+
+      await createSignup(signup);
+
+      const preference =
+        await createPreference({
+          title:
+            `Inscripción ${course.name}`,
+
+          amount:
+            course.inscription,
+
+          reference:
+            signup.id,
+
+          name:
+            `${signup.name} ${signup.lastname}`
+        });
+
+      res.json({
+        checkoutUrl:
+          preference.init_point ||
+          preference.sandbox_init_point,
+
+        signup
+      });
+
+    } catch (e) {
+      console.error(e);
+
+      res.status(500).json({
+        error:
+          e.message ||
+          'No se pudo realizar la inscripción.'
       });
     }
+  }
+);
 
-    await saveProducts(req.body.products);
+/* =========================
+   PEDIDOS DE PRODUCTOS
+========================= */
 
-    res.json({ok:true});
-  }catch(e){
-    console.error(e);
+app.post(
+  '/api/order',
+  async (req, res) => {
+    try {
+      const products =
+        await getProducts();
 
-    res.status(500).json({
-      error:'No se pudieron guardar los productos'
+      let total = 0;
+
+      for (
+        const item of
+        req.body.items || []
+      ) {
+        const product =
+          products.find(
+            x =>
+              x.id ===
+              item.productId
+          );
+
+        if (!product) {
+          return res
+            .status(400)
+            .json({
+              error:
+                'Producto inválido.'
+            });
+        }
+
+        total +=
+          Number(product.price) *
+          Number(
+            item.qty || 1
+          );
+      }
+
+      if (total <= 0) {
+        return res
+          .status(400)
+          .json({
+            error:
+              'El carrito está vacío.'
+          });
+      }
+
+      const order = {
+        id:
+          'ped-' +
+          Date.now(),
+
+        customer:
+          req.body.customer,
+
+        items:
+          req.body.items,
+
+        total,
+
+        status:
+          'pending'
+      };
+
+      orders.unshift(order);
+
+      const preference =
+        await createPreference({
+          title:
+            'Pedido Centro Constitución',
+
+          amount:
+            total,
+
+          reference:
+            order.id,
+
+          name:
+            order.customer?.name
+        });
+
+      res.json({
+        checkoutUrl:
+          preference.init_point ||
+          preference.sandbox_init_point
+      });
+
+    } catch (e) {
+      console.error(e);
+
+      res.status(500).json({
+        error:
+          e.message ||
+          'No se pudo iniciar el pago.'
+      });
+    }
+  }
+);
+
+/* =========================
+   WEBHOOK MERCADO PAGO
+========================= */
+
+app.post(
+  '/api/webhook',
+  async (req, res) => {
+    res.sendStatus(200);
+
+    try {
+      const paymentId =
+        req.query['data.id'] ||
+        req.body?.data?.id;
+
+      if (!paymentId) {
+        return;
+      }
+
+      const payment =
+        await mpRequest(
+          `/v1/payments/${paymentId}`
+        );
+
+      const reference =
+        payment.external_reference;
+
+      if (!reference) {
+        return;
+      }
+
+      if (
+        reference.startsWith(
+          'ins-'
+        )
+      ) {
+        await updateSignupPayment(
+          reference,
+          payment
+        );
+
+        return;
+      }
+
+      if (
+        reference.startsWith(
+          'ped-'
+        )
+      ) {
+        const order =
+          orders.find(
+            x =>
+              x.id ===
+              reference
+          );
+
+        if (order) {
+          order.status =
+            payment.status ===
+            'approved'
+              ? 'approved'
+              : payment.status;
+        }
+      }
+
+    } catch (e) {
+      console.error(
+        'Webhook:',
+        e
+      );
+    }
+  }
+);
+
+/* =========================
+   LOGIN ADMIN
+========================= */
+
+function auth(req, res, next) {
+  try {
+    const token =
+      req.cookies.admin;
+
+    if (!token) {
+      return res
+        .status(401)
+        .end();
+    }
+
+    jwt.verify(
+      token,
+      JWT_SECRET
+    );
+
+    next();
+
+  } catch {
+    res
+      .status(401)
+      .end();
+  }
+}
+
+app.post(
+  '/api/login',
+  (req, res) => {
+    const email =
+      process.env.ADMIN_EMAIL ||
+      'admin@centroconstitucion.com';
+
+    const password =
+      process.env.ADMIN_PASSWORD ||
+      'Cambiar123!';
+
+    if (
+      req.body.email !== email ||
+      req.body.password !==
+        password
+    ) {
+      return res
+        .status(401)
+        .json({
+          error:
+            'Datos incorrectos.'
+        });
+    }
+
+    res.cookie(
+      'admin',
+
+      jwt.sign(
+        { email },
+        JWT_SECRET,
+        {
+          expiresIn:
+            '12h'
+        }
+      ),
+
+      {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure:
+          PUBLIC_URL.startsWith(
+            'https://'
+          )
+      }
+    );
+
+    res.json({
+      ok: true
     });
   }
-});
+);
+
+/* =========================
+   PANEL ADMIN API
+========================= */
+
+app.get(
+  '/api/admin',
+  auth,
+  async (_req, res) => {
+    const [
+      courses,
+      products,
+      signups
+    ] =
+      await Promise.all([
+        getCourses(),
+        getProducts(),
+        getSignups()
+      ]);
+
+    res.json({
+      courses,
+      products,
+      signups,
+      orders
+    });
+  }
+);
+
+app.put(
+  '/api/admin/courses',
+  auth,
+  async (req, res) => {
+    try {
+      if (
+        !Array.isArray(
+          req.body.courses
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              'Datos inválidos.'
+          });
+      }
+
+      await saveCourses(
+        req.body.courses
+      );
+
+      res.json({
+        ok: true
+      });
+
+    } catch (e) {
+      res.status(500).json({
+        error:
+          'No se pudieron guardar los cursos.'
+      });
+    }
+  }
+);
+
+app.put(
+  '/api/admin/products',
+  auth,
+  async (req, res) => {
+    try {
+      if (
+        !Array.isArray(
+          req.body.products
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              'Datos inválidos.'
+          });
+      }
+
+      await saveProducts(
+        req.body.products
+      );
+
+      res.json({
+        ok: true
+      });
+
+    } catch (e) {
+      console.error(e);
+
+      res.status(500).json({
+        error:
+          'No se pudieron guardar los productos.'
+      });
+    }
+  }
+);
+
+/* =========================
+   CSS
+========================= */
 
 const css = `
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial;background:#f7f3ee;color:#181818}
-a{text-decoration:none;color:inherit}
-.c{width:min(1120px,calc(100% - 30px));margin:auto}
-header{position:sticky;top:0;background:#f7f3eef5;border-bottom:1px solid #e5ddd4;z-index:5}
-.nav{height:72px;display:flex;align-items:center;justify-content:space-between}
-.logo{width:42px;height:42px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;background:#fff}
-.hero{padding:70px 0}
-.heroGrid{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
-h1{font-family:Georgia;font-size:clamp(48px,7vw,86px);line-height:.95;margin:10px 0}
-h2{font-family:Georgia;font-size:42px}
-.muted{color:#716c66}
-.heroCard{height:430px;border-radius:32px;background:linear-gradient(145deg,#111,#342b23);color:#fff;padding:28px;display:flex;flex-direction:column;justify-content:space-between}
-.heroCard b{font-family:Georgia;font-size:46px}
-.sec{padding:80px 0}
-.soft{background:#efe7dd}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.card{background:#fff;border:1px solid #e5ddd4;border-radius:24px;padding:22px}
-.tag{display:inline-block;background:#f2ece5;border-radius:999px;padding:7px 10px;font-size:12px;margin:4px}
-.btn{border:0;border-radius:999px;padding:13px 18px;font-weight:800;cursor:pointer}
-.pri{background:#171717;color:#fff}
-.secbtn{background:#fff;border:1px solid #ddd}
-.form{background:#fff;padding:24px;border-radius:24px}
-.field{margin-bottom:12px}
-.field label{display:block;font-size:13px;font-weight:800;margin-bottom:6px}
-input,select,textarea{width:100%;padding:13px;border:1px solid #ddd;border-radius:12px}
-.signup{display:grid;grid-template-columns:.85fr 1.15fr;gap:40px}
-.product{background:#fff;border-radius:22px;overflow:hidden;border:1px solid #ddd}
-.pic{height:180px;background:#e8ddd1;display:grid;place-items:center;font-size:58px}
-.pb{padding:18px}
-.drawer{position:fixed;inset:0;background:#0008;display:none;justify-content:flex-end;z-index:10}
-.drawer.open{display:flex}
-.panel{width:min(430px,100%);height:100%;background:#fff;padding:22px;overflow:auto}
-.row{padding:12px 0;border-bottom:1px solid #ddd}
-.admin{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.login{min-height:100vh;display:grid;place-items:center}
-.loginBox{width:min(420px,calc(100% - 30px));background:#fff;padding:28px;border-radius:24px}
+*{
+box-sizing:border-box
+}
+
+body{
+margin:0;
+font-family:Arial,sans-serif;
+background:#f7f3ee;
+color:#181818
+}
+
+a{
+text-decoration:none;
+color:inherit
+}
+
+.c{
+width:min(1120px,calc(100% - 30px));
+margin:auto
+}
+
+header{
+position:sticky;
+top:0;
+background:#f7f3eef5;
+border-bottom:1px solid #e5ddd4;
+z-index:5
+}
+
+.nav{
+height:72px;
+display:flex;
+align-items:center;
+justify-content:space-between
+}
+
+.logo{
+width:42px;
+height:42px;
+border-radius:50%;
+object-fit:cover;
+margin-right:8px;
+vertical-align:middle;
+background:#fff
+}
+
+.hero{
+padding:70px 0
+}
+
+.heroGrid{
+display:grid;
+grid-template-columns:1.1fr .9fr;
+gap:40px;
+align-items:center
+}
+
+h1{
+font-family:Georgia,serif;
+font-size:clamp(48px,7vw,86px);
+line-height:.95;
+margin:10px 0
+}
+
+h2{
+font-family:Georgia,serif;
+font-size:42px
+}
+
+.muted{
+color:#716c66
+}
+
+.heroCard{
+height:430px;
+border-radius:32px;
+background:linear-gradient(145deg,#111,#342b23);
+color:#fff;
+padding:28px;
+display:flex;
+flex-direction:column;
+justify-content:space-between
+}
+
+.heroCard b{
+font-family:Georgia,serif;
+font-size:46px
+}
+
+.sec{
+padding:80px 0
+}
+
+.soft{
+background:#efe7dd
+}
+
+.grid2{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:18px
+}
+
+.grid3{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:18px
+}
+
+.card{
+background:#fff;
+border:1px solid #e5ddd4;
+border-radius:24px;
+padding:22px
+}
+
+.tag{
+display:inline-block;
+background:#f2ece5;
+border-radius:999px;
+padding:7px 10px;
+font-size:12px;
+margin:4px
+}
+
+.btn{
+border:0;
+border-radius:999px;
+padding:13px 18px;
+font-weight:800;
+cursor:pointer
+}
+
+.pri{
+background:#171717;
+color:#fff
+}
+
+.secbtn{
+background:#fff;
+border:1px solid #ddd
+}
+
+.green{
+background:#168342;
+color:white
+}
+
+.form{
+background:#fff;
+padding:24px;
+border-radius:24px
+}
+
+.field{
+margin-bottom:12px
+}
+
+.field label{
+display:block;
+font-size:13px;
+font-weight:800;
+margin-bottom:6px
+}
+
+input,
+select,
+textarea{
+width:100%;
+padding:13px;
+border:1px solid #ddd;
+border-radius:12px
+}
+
+.signup{
+display:grid;
+grid-template-columns:.85fr 1.15fr;
+gap:40px
+}
+
+.product{
+background:#fff;
+border-radius:22px;
+overflow:hidden;
+border:1px solid #ddd
+}
+
+.pic{
+height:180px;
+background:#e8ddd1;
+display:grid;
+place-items:center;
+font-size:58px;
+overflow:hidden
+}
+
+.pic img{
+width:100%;
+height:100%;
+object-fit:cover;
+display:block
+}
+
+.preview{
+width:100%;
+height:180px;
+border-radius:14px;
+object-fit:cover;
+background:#eee;
+margin:8px 0
+}
+
+.pb{
+padding:18px
+}
+
+.drawer{
+position:fixed;
+inset:0;
+background:#0008;
+display:none;
+justify-content:flex-end;
+z-index:10
+}
+
+.drawer.open{
+display:flex
+}
+
+.panel{
+width:min(430px,100%);
+height:100%;
+background:#fff;
+padding:22px;
+overflow:auto
+}
+
+.row{
+padding:16px 0;
+border-bottom:1px solid #ddd
+}
+
+.admin{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:18px
+}
+
+.login{
+min-height:100vh;
+display:grid;
+place-items:center
+}
+
+.loginBox{
+width:min(420px,calc(100% - 30px));
+background:#fff;
+padding:28px;
+border-radius:24px
+}
+
+.status{
+display:inline-block;
+padding:6px 10px;
+border-radius:20px;
+font-size:12px;
+font-weight:bold;
+margin-top:7px
+}
+
+.approved{
+background:#ddf5e5;
+color:#176b34
+}
+
+.pending{
+background:#fff1c9;
+color:#745900
+}
+
+.student{
+background:#faf8f5;
+border:1px solid #e8e1da;
+border-radius:18px;
+padding:16px;
+margin-bottom:12px
+}
+
+.student h3{
+margin:0 0 10px
+}
+
+.student p{
+margin:5px 0
+}
+
 @media(max-width:800px){
-.heroGrid,.grid2,.grid3,.signup,.admin{grid-template-columns:1fr}
-.heroCard{height:320px}
+
+.heroGrid,
+.grid2,
+.grid3,
+.signup,
+.admin{
+grid-template-columns:1fr
+}
+
+.heroCard{
+height:320px
+}
+
+h2{
+font-size:34px
+}
+
+.sec{
+padding:50px 0
+}
+
 }
 `;
+
+/* =========================
+   PÁGINA PRINCIPAL
+========================= */
 
 const home = `
 <!doctype html>
 <html lang="es">
+
 <head>
+
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Centro Constitución</title>
-<style>${css}</style>
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1"
+>
+
+<title>
+Centro Constitución
+</title>
+
+<style>
+${css}
+</style>
+
 </head>
+
 <body>
 
 <header>
+
 <div class="c nav">
+
 <div>
-<img class="logo" src="/IMG_5279.jpeg">
-<b>Centro Constitución</b>
+
+<img
+class="logo"
+src="/IMG_5279.jpeg"
+>
+
+<b>
+Centro Constitución
+</b>
+
 </div>
-<a href="/admin">Panel</a>
+
+<a href="/admin">
+Panel
+</a>
+
 </div>
+
 </header>
 
 <section class="hero">
+
 <div class="c heroGrid">
+
 <div>
-<small>FORMACIÓN • BELLEZA • PROFESIÓN</small>
-<h1>Transformá tu talento en una profesión.</h1>
+
+<small>
+FORMACIÓN • BELLEZA • PROFESIÓN
+</small>
+
+<h1>
+Transformá tu talento en una profesión.
+</h1>
+
 <p class="muted">
 Cursos presenciales en Constitución y herramientas profesionales.
 </p>
-<a class="btn pri" href="#inscripcion">
+
+<a
+class="btn pri"
+href="#inscripcion"
+>
 Inscribirme ahora
 </a>
+
 </div>
 
 <div class="heroCard">
-<small>CENTRO CONSTITUCIÓN</small>
-<b>Tu próximo paso empieza acá.</b>
-<small>Av. Brasil 1223 · Constitución</small>
+
+<small>
+CENTRO CONSTITUCIÓN
+</small>
+
+<b>
+Tu próximo paso empieza acá.
+</b>
+
+<small>
+Av. Brasil 1223 · Constitución
+</small>
+
 </div>
+
 </div>
+
 </section>
 
 <section class="sec">
+
 <div class="c">
-<h2>Cursos</h2>
-<div id="courses" class="grid2"></div>
+
+<h2>
+Cursos
+</h2>
+
+<div
+id="courses"
+class="grid2"
+></div>
+
 </div>
+
 </section>
 
-<section class="sec soft" id="inscripcion">
+<section
+class="sec soft"
+id="inscripcion"
+>
+
 <div class="c signup">
 
 <div>
-<h2>Inscripción online</h2>
+
+<h2>
+Inscripción online
+</h2>
+
 <p class="muted">
-Elegí el curso, completá tus datos y pagá la inscripción.
+Completá tus datos, elegí tu curso y horario y aboná la inscripción.
 </p>
+
 </div>
 
-<form id="signup" class="form">
+<form
+id="signup"
+class="form"
+>
 
 <div class="field">
-<label>Nombre</label>
-<input name="name" required>
-</div>
 
-<div class="field">
-<label>DNI</label>
-<input name="dni" required>
-</div>
+<label>
+Nombre
+</label>
 
-<div class="field">
-<label>WhatsApp</label>
-<input name="phone" required>
-</div>
+<input
+name="name"
+required
+autocomplete="given-name"
+>
 
-<div class="field">
-<label>Email</label>
-<input name="email" type="email" required>
 </div>
 
 <div class="field">
-<label>Curso</label>
-<select id="course" name="courseId"></select>
+
+<label>
+Apellido
+</label>
+
+<input
+name="lastname"
+required
+autocomplete="family-name"
+>
+
 </div>
 
 <div class="field">
-<label>Horario</label>
-<select id="schedule" name="schedule"></select>
+
+<label>
+Número de documento
+</label>
+
+<input
+name="documentNumber"
+required
+inputmode="numeric"
+>
+
 </div>
 
-<button class="btn pri" style="width:100%">
+<div class="field">
+
+<label>
+Fecha de nacimiento
+</label>
+
+<input
+name="birthDate"
+type="date"
+required
+>
+
+</div>
+
+<div class="field">
+
+<label>
+WhatsApp
+</label>
+
+<input
+name="phone"
+required
+inputmode="tel"
+placeholder="Ej: 11 1234 5678"
+>
+
+</div>
+
+<div class="field">
+
+<label>
+Curso
+</label>
+
+<select
+id="course"
+name="courseId"
+required
+></select>
+
+</div>
+
+<div class="field">
+
+<label>
+Horario
+</label>
+
+<select
+id="schedule"
+name="schedule"
+required
+></select>
+
+</div>
+
+<button
+class="btn pri"
+style="width:100%"
+>
+
 Inscribirme y pagar
+
 </button>
 
 <p id="msg"></p>
 
 </form>
+
 </div>
+
 </section>
 
 <section class="sec">
+
 <div class="c">
 
-<div style="display:flex;justify-content:space-between;align-items:center">
-<h2>Tienda</h2>
-<button class="btn secbtn" id="cartBtn">
-🛒 Carrito <span id="count">0</span>
+<div
+style="
+display:flex;
+justify-content:space-between;
+align-items:center
+"
+>
+
+<h2>
+Tienda
+</h2>
+
+<button
+class="btn secbtn"
+id="cartBtn"
+>
+
+🛒 Carrito
+
+<span id="count">
+0
+</span>
+
 </button>
-</div>
-
-<div id="products" class="grid3"></div>
 
 </div>
+
+<div
+id="products"
+class="grid3"
+></div>
+
+</div>
+
 </section>
 
-<section class="sec" style="background:#171717;color:#fff">
+<section
+class="sec"
+style="
+background:#171717;
+color:#fff
+"
+>
+
 <div class="c">
-<h2>Av. Brasil 1223</h2>
-<p>Constitución, CABA</p>
-<a class="btn secbtn" target="_blank" href="https://wa.me/541166061100">
+
+<h2>
+Av. Brasil 1223
+</h2>
+
+<p>
+Constitución, CABA
+</p>
+
+<a
+class="btn secbtn"
+target="_blank"
+href="https://wa.me/${BUSINESS_WHATSAPP}"
+>
+
 WhatsApp
+
 </a>
+
 </div>
+
 </section>
 
-<div id="drawer" class="drawer">
+<div
+id="drawer"
+class="drawer"
+>
+
 <div class="panel">
 
-<button id="close" class="btn secbtn">
+<button
+id="close"
+class="btn secbtn"
+>
+
 Cerrar
+
 </button>
 
-<h2>Carrito</h2>
+<h2>
+Carrito
+</h2>
 
 <div id="items"></div>
 
-<h3 id="total">$0</h3>
+<h3 id="total">
+$0
+</h3>
 
 <form id="order">
 
 <div class="field">
-<label>Nombre</label>
-<input name="name" required>
+
+<label>
+Nombre
+</label>
+
+<input
+name="name"
+required
+>
+
 </div>
 
 <div class="field">
-<label>WhatsApp</label>
-<input name="phone" required>
+
+<label>
+WhatsApp
+</label>
+
+<input
+name="phone"
+required
+>
+
 </div>
 
-<div class="field">
-<label>Email</label>
-<input name="email" type="email" required>
-</div>
+<button
+class="btn pri"
+style="width:100%"
+>
 
-<button class="btn pri" style="width:100%">
 Comprar con Mercado Pago
+
 </button>
 
 <p id="omsg"></p>
 
 </form>
+
 </div>
+
 </div>
 
 <script>
+
 let cfg;
-let cart=[];
 
-const $=x=>document.querySelector(x);
+let cart = [];
 
-const money=n=>
+const $ =
+selector =>
+document.querySelector(selector);
+
+const money =
+number =>
 new Intl.NumberFormat(
 'es-AR',
 {
@@ -681,536 +1631,1628 @@ style:'currency',
 currency:'ARS',
 maximumFractionDigits:0
 }
-).format(n);
+).format(number);
 
-async function api(u,o={}){
-const r=await fetch(
-u,
+async function api(
+url,
+options = {}
+){
+
+const response =
+await fetch(
+url,
 {
-headers:{'Content-Type':'application/json'},
-...o
+headers:{
+'Content-Type':
+'application/json'
+},
+...options
 }
 );
 
-const d=await r.json().catch(()=>({}));
+const data =
+await response
+.json()
+.catch(()=>({}));
 
-if(!r.ok){
+if(!response.ok){
+
 throw new Error(
-d.error ||
-d.message ||
+data.error ||
+data.message ||
 'Error'
 );
+
 }
 
-return d;
+return data;
+
+}
+
+function productPicture(product){
+
+const value =
+product.emoji ||
+'🛍️';
+
+if(
+value.startsWith(
+'data:image/'
+) ||
+value.startsWith(
+'https://'
+) ||
+value.startsWith(
+'http://'
+)
+){
+
+return (
+'<img src="' +
+value +
+'" alt="' +
+product.name +
+'">'
+);
+
+}
+
+return value;
+
 }
 
 async function init(){
-cfg=await api('/api/config');
 
-$('#courses').innerHTML=
-cfg.courses.map(c=>
-'<div class="card">'+
-'<div style="font-size:30px">'+c.icon+'</div>'+
-'<h3>'+c.name+'</h3>'+
-'<p class="muted">'+c.description+'</p>'+
-'<div>'+
-c.schedules.map(s=>
-'<span class="tag">'+s+'</span>'
-).join('')+
-'</div>'+
-'<p><b>Inscripción '+money(c.inscription)+'</b> · Cuota '+money(c.monthly)+'</p>'+
-'<button class="btn pri" onclick="choose(\\''+c.id+'\\')">Inscribirme</button>'+
-'</div>'
-).join('');
-
-$('#products').innerHTML=
-cfg.products.map(p=>
-'<div class="product">'+
-'<div class="pic">'+p.emoji+'</div>'+
-'<div class="pb">'+
-'<h3>'+p.name+'</h3>'+
-'<b>'+money(p.price)+'</b>'+
-'<p class="muted">Stock: '+p.stock+'</p>'+
-'<button class="btn pri" style="margin-top:10px" onclick="add(\\''+p.id+'\\')">Agregar</button>'+
-'</div>'+
-'</div>'
-).join('');
-
-$('#course').innerHTML=
-cfg.courses.map(c=>
-'<option value="'+c.id+'">'+c.name+'</option>'
-).join('');
-
-sched();
-}
-
-function sched(){
-const c=cfg.courses.find(
-x=>x.id===$('#course').value
+cfg =
+await api(
+'/api/config'
 );
 
-if(!c)return;
+$('#courses').innerHTML =
+cfg.courses
+.map(course =>
 
-$('#schedule').innerHTML=
-c.schedules.map(s=>
-'<option>'+s+'</option>'
-).join('');
+'<div class="card">' +
+
+'<div style="font-size:30px">' +
+course.icon +
+'</div>' +
+
+'<h3>' +
+course.name +
+'</h3>' +
+
+'<p class="muted">' +
+course.description +
+'</p>' +
+
+'<div>' +
+
+course.schedules
+.map(
+schedule =>
+'<span class="tag">' +
+schedule +
+'</span>'
+)
+.join('') +
+
+'</div>' +
+
+'<p><b>Inscripción ' +
+money(course.inscription) +
+'</b> · Cuota ' +
+money(course.monthly) +
+'</p>' +
+
+'<button class="btn pri" onclick="choose(\\'' +
+course.id +
+'\\')">Inscribirme</button>' +
+
+'</div>'
+
+)
+.join('');
+
+$('#products').innerHTML =
+cfg.products
+.map(product =>
+
+'<div class="product">' +
+
+'<div class="pic">' +
+productPicture(product) +
+'</div>' +
+
+'<div class="pb">' +
+
+'<h3>' +
+product.name +
+'</h3>' +
+
+'<b>' +
+money(product.price) +
+'</b>' +
+
+'<p class="muted">Stock: ' +
+product.stock +
+'</p>' +
+
+'<button class="btn pri" onclick="add(\\'' +
+product.id +
+'\\')">Agregar</button>' +
+
+'</div>' +
+
+'</div>'
+
+)
+.join('');
+
+$('#course').innerHTML =
+cfg.courses
+.map(course =>
+
+'<option value="' +
+course.id +
+'">' +
+course.name +
+'</option>'
+
+)
+.join('');
+
+updateSchedules();
+
+checkPaymentReturn();
+
 }
 
-window.choose=id=>{
-$('#course').value=id;
-sched();
-location.hash='inscripcion';
+function updateSchedules(){
+
+const course =
+cfg.courses.find(
+item =>
+item.id ===
+$('#course').value
+);
+
+if(!course){
+return;
+}
+
+$('#schedule').innerHTML =
+course.schedules
+.map(
+schedule =>
+'<option>' +
+schedule +
+'</option>'
+)
+.join('');
+
+}
+
+window.choose =
+id => {
+
+$('#course').value =
+id;
+
+updateSchedules();
+
+location.hash =
+'inscripcion';
+
 };
 
-$('#course').onchange=sched;
+$('#course').onchange =
+updateSchedules;
 
-window.add=id=>{
-const p=cfg.products.find(
-x=>x.id===id
+window.add =
+id => {
+
+const product =
+cfg.products.find(
+item =>
+item.id === id
 );
 
-if(!p)return;
+if(!product){
+return;
+}
 
-const i=cart.find(
-x=>x.productId===id
+const item =
+cart.find(
+item =>
+item.productId === id
 );
 
-if(i){
-i.qty++;
+if(item){
+
+item.qty++;
+
 }else{
+
 cart.push({
 productId:id,
-name:p.name,
-price:p.price,
+name:product.name,
+price:Number(product.price),
 qty:1
 });
+
 }
 
-render();
+renderCart();
+
 };
 
-function render(){
-$('#count').textContent=
+function renderCart(){
+
+$('#count').textContent =
 cart.reduce(
-(a,b)=>a+b.qty,
+(total,item) =>
+total + item.qty,
 0
 );
 
-$('#items').innerHTML=
-cart.map(i=>
-'<div class="row">'+
-i.name+
-' × '+
-i.qty+
-' — '+
-money(i.price*i.qty)+
+$('#items').innerHTML =
+cart
+.map(
+item =>
+
+'<div class="row">' +
+item.name +
+' × ' +
+item.qty +
+' — ' +
+money(
+item.price *
+item.qty
+) +
 '</div>'
-).join('') ||
+
+)
+.join('') ||
+
 '<p>Carrito vacío</p>';
 
-$('#total').textContent=
+$('#total').textContent =
 money(
 cart.reduce(
-(a,b)=>a+b.price*b.qty,
+(total,item) =>
+total +
+item.price *
+item.qty,
 0
 )
 );
+
 }
 
-$('#cartBtn').onclick=()=>{
-$('#drawer').classList.add('open');
+$('#cartBtn').onclick =
+() => {
+
+$('#drawer')
+.classList
+.add('open');
+
 };
 
-$('#close').onclick=()=>{
-$('#drawer').classList.remove('open');
+$('#close').onclick =
+() => {
+
+$('#drawer')
+.classList
+.remove('open');
+
 };
 
-$('#signup').onsubmit=async e=>{
-e.preventDefault();
+function formatDate(date){
+
+if(!date){
+return '';
+}
+
+const parts =
+date.split('-');
+
+if(parts.length !== 3){
+return date;
+}
+
+return (
+parts[2] +
+'/' +
+parts[1] +
+'/' +
+parts[0]
+);
+
+}
+
+function checkPaymentReturn(){
+
+const params =
+new URLSearchParams(
+location.search
+);
+
+if(
+params.get('pay') !==
+'success'
+){
+return;
+}
+
+const stored =
+localStorage.getItem(
+'pendingSignup'
+);
+
+if(!stored){
+return;
+}
 
 try{
-const d=await api(
+
+const signup =
+JSON.parse(stored);
+
+const message =
+
+'✅ NUEVA INSCRIPCIÓN\\n\\n' +
+
+'Nombre: ' +
+signup.name +
+'\\n' +
+
+'Apellido: ' +
+signup.lastname +
+'\\n' +
+
+'Documento: ' +
+signup.documentNumber +
+'\\n' +
+
+'Fecha de nacimiento: ' +
+formatDate(
+signup.birthDate
+) +
+'\\n' +
+
+'WhatsApp: ' +
+signup.phone +
+'\\n' +
+
+'Curso: ' +
+signup.courseName +
+'\\n' +
+
+'Horario: ' +
+signup.schedule +
+'\\n\\n' +
+
+'Pago realizado por Mercado Pago.';
+
+localStorage.removeItem(
+'pendingSignup'
+);
+
+setTimeout(
+() => {
+
+location.href =
+'https://wa.me/${BUSINESS_WHATSAPP}?text=' +
+encodeURIComponent(
+message
+);
+
+},
+700
+);
+
+}catch(error){
+
+console.error(error);
+
+}
+
+}
+
+$('#signup').onsubmit =
+async event => {
+
+event.preventDefault();
+
+$('#msg').textContent =
+'Procesando...';
+
+try{
+
+const formData =
+Object.fromEntries(
+new FormData(
+event.target
+)
+);
+
+const course =
+cfg.courses.find(
+item =>
+item.id ===
+formData.courseId
+);
+
+const response =
+await api(
 '/api/signup',
 {
 method:'POST',
-body:JSON.stringify(
-Object.fromEntries(
-new FormData(e.target)
-)
+body:
+JSON.stringify(
+formData
 )
 }
 );
 
-if(d.checkoutUrl){
-location.href=d.checkoutUrl;
+localStorage.setItem(
+'pendingSignup',
+JSON.stringify({
+name:
+formData.name,
+
+lastname:
+formData.lastname,
+
+documentNumber:
+formData.documentNumber,
+
+birthDate:
+formData.birthDate,
+
+phone:
+formData.phone,
+
+courseName:
+course
+? course.name
+: '',
+
+schedule:
+formData.schedule
+})
+);
+
+if(
+response.checkoutUrl
+){
+
+location.href =
+response.checkoutUrl;
+
 }else{
-$('#msg').textContent=d.message;
+
+$('#msg').textContent =
+'No se pudo abrir Mercado Pago.';
+
 }
 
-}catch(e){
-$('#msg').textContent=e.message;
+}catch(error){
+
+$('#msg').textContent =
+error.message;
+
 }
+
 };
 
-$('#order').onsubmit=async e=>{
-e.preventDefault();
+$('#order').onsubmit =
+async event => {
+
+event.preventDefault();
+
+if(!cart.length){
+
+$('#omsg').textContent =
+'Agregá un producto primero.';
+
+return;
+
+}
 
 try{
-const customer=
+
+const customer =
 Object.fromEntries(
-new FormData(e.target)
+new FormData(
+event.target
+)
 );
 
-const d=await api(
+const response =
+await api(
 '/api/order',
 {
 method:'POST',
-body:JSON.stringify({
+body:
+JSON.stringify({
 customer,
-items:cart.map(x=>({
-productId:x.productId,
-qty:x.qty
-}))
+items:
+cart.map(
+item => ({
+productId:
+item.productId,
+qty:
+item.qty
+})
+)
 })
 }
 );
 
-if(d.checkoutUrl){
-location.href=d.checkoutUrl;
-}else{
-$('#omsg').textContent=d.message;
+if(
+response.checkoutUrl
+){
+
+location.href =
+response.checkoutUrl;
+
 }
 
-}catch(e){
-$('#omsg').textContent=e.message;
+}catch(error){
+
+$('#omsg').textContent =
+error.message;
+
 }
+
 };
 
 init();
-render();
+
+renderCart();
+
 </script>
 
 </body>
+
 </html>
 `;
+
+/* =========================
+   LOGIN
+========================= */
 
 const login = `
 <!doctype html>
+
 <html>
+
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>${css}</style>
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1"
+>
+
+<style>
+${css}
+</style>
+
 </head>
+
 <body>
 
 <div class="login">
-<form id="f" class="loginBox">
 
-<img class="logo" src="/IMG_5279.jpeg">
+<form
+id="loginForm"
+class="loginBox"
+>
 
-<h2>Panel</h2>
+<img
+class="logo"
+src="/IMG_5279.jpeg"
+>
+
+<h2>
+Panel
+</h2>
 
 <div class="field">
-<label>Email</label>
-<input name="email" type="email" required>
+
+<label>
+Email
+</label>
+
+<input
+name="email"
+type="email"
+required
+>
+
 </div>
 
 <div class="field">
-<label>Contraseña</label>
-<input name="password" type="password" required>
+
+<label>
+Contraseña
+</label>
+
+<input
+name="password"
+type="password"
+required
+>
+
 </div>
 
-<button class="btn pri" style="width:100%">
+<button
+class="btn pri"
+style="width:100%"
+>
+
 Ingresar
+
 </button>
 
-<p id="m"></p>
+<p id="loginMessage"></p>
 
 </form>
+
 </div>
 
 <script>
-document.getElementById('f').onsubmit=async e=>{
-e.preventDefault();
 
-const r=await fetch(
+document
+.getElementById(
+'loginForm'
+)
+.onsubmit =
+async event => {
+
+event.preventDefault();
+
+const response =
+await fetch(
 '/api/login',
 {
 method:'POST',
+
 headers:{
-'Content-Type':'application/json'
+'Content-Type':
+'application/json'
 },
-body:JSON.stringify(
+
+body:
+JSON.stringify(
 Object.fromEntries(
-new FormData(e.target)
+new FormData(
+event.target
+)
 )
 )
 }
 );
 
-if(r.ok){
-location.href='/admin';
+if(response.ok){
+
+location.href =
+'/admin';
+
 }else{
-document.getElementById('m').textContent=
+
+document
+.getElementById(
+'loginMessage'
+)
+.textContent =
 'Datos incorrectos';
+
 }
+
 };
+
 </script>
 
 </body>
+
 </html>
 `;
 
+/* =========================
+   PANEL ADMIN
+========================= */
+
 const admin = `
 <!doctype html>
-<html>
+
+<html lang="es">
+
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>${css}</style>
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1"
+>
+
+<style>
+${css}
+</style>
+
 </head>
+
 <body>
 
 <header>
+
 <div class="c nav">
 
 <b>
-<img class="logo" src="/IMG_5279.jpeg">
+
+<img
+class="logo"
+src="/IMG_5279.jpeg"
+>
+
 Administración
+
 </b>
 
-<a href="/">Ver web</a>
+<a href="/">
+Ver web
+</a>
 
 </div>
+
 </header>
 
 <section class="sec">
-<div class="c admin">
+
+<div class="c">
 
 <div class="card">
-<h2>Cursos</h2>
-<div id="ca"></div>
-<button class="btn pri" onclick="addC()">
+
+<h2>
+Alumnos inscriptos
+</h2>
+
+<p class="muted">
+Todos los datos de las inscripciones quedan guardados acá.
+</p>
+
+<div id="students"></div>
+
+</div>
+
+<br>
+
+<div class="admin">
+
+<div class="card">
+
+<h2>
+Cursos
+</h2>
+
+<div id="coursesAdmin"></div>
+
+<button
+class="btn pri"
+onclick="addCourse()"
+>
 + Curso
 </button>
+
 </div>
 
 <div class="card">
-<h2>Productos</h2>
-<div id="pa"></div>
-<button class="btn pri" onclick="addP()">
+
+<h2>
+Productos
+</h2>
+
+<div id="productsAdmin"></div>
+
+<button
+class="btn pri"
+onclick="addProduct()"
+>
 + Producto
 </button>
-</div>
 
-<div class="card">
-<h2>Inscripciones</h2>
-<div id="sa"></div>
-</div>
-
-<div class="card">
-<h2>Pedidos</h2>
-<div id="oa"></div>
 </div>
 
 </div>
+
+</div>
+
 </section>
 
 <script>
+
 let db;
 
-async function api(u,o={}){
-const r=await fetch(
-u,
+async function api(
+url,
+options = {}
+){
+
+const response =
+await fetch(
+url,
 {
 headers:{
-'Content-Type':'application/json'
+'Content-Type':
+'application/json'
 },
-...o
+...options
 }
 );
 
-if(r.status===401){
-location.href='/login';
-throw new Error('No autorizado');
+if(
+response.status ===
+401
+){
+
+location.href =
+'/login';
+
+throw new Error(
+'No autorizado'
+);
+
 }
 
-const d=await r.json().catch(()=>({}));
+const data =
+await response
+.json()
+.catch(()=>({}));
 
-if(!r.ok){
+if(!response.ok){
+
 throw new Error(
-d.error ||
-d.message ||
+data.error ||
+data.message ||
 'Error'
 );
+
 }
 
-return d;
+return data;
+
 }
 
 async function load(){
-db=await api('/api/admin');
+
+db =
+await api(
+'/api/admin'
+);
+
 render();
+
+}
+
+function safe(value){
+
+return String(
+value || ''
+)
+.replaceAll(
+'&',
+'&amp;'
+)
+.replaceAll(
+'<',
+'&lt;'
+)
+.replaceAll(
+'>',
+'&gt;'
+)
+.replaceAll(
+'"',
+'&quot;'
+);
+
+}
+
+function formatBirthDate(
+value
+){
+
+if(!value){
+return '-';
+}
+
+const parts =
+value.split('-');
+
+if(
+parts.length !== 3
+){
+return value;
+}
+
+return (
+parts[2] +
+'/' +
+parts[1] +
+'/' +
+parts[0]
+);
+
+}
+
+function whatsappNumber(
+value
+){
+
+let number =
+String(
+value || ''
+)
+.replace(
+/\\D/g,
+''
+);
+
+if(
+number.startsWith(
+'549'
+)
+){
+return number;
+}
+
+if(
+number.startsWith(
+'54'
+)
+){
+
+number =
+number.slice(2);
+
+}
+
+if(
+number.startsWith(
+'0'
+)
+){
+
+number =
+number.slice(1);
+
+}
+
+if(
+number.startsWith(
+'15'
+)
+){
+
+number =
+number.slice(2);
+
+}
+
+if(
+number.startsWith(
+'11'
+)
+){
+
+return (
+'549' +
+number
+);
+
+}
+
+return (
+'549' +
+number
+);
+
+}
+
+function productPreview(
+product
+){
+
+const value =
+product.emoji ||
+'';
+
+if(
+value.startsWith(
+'data:image/'
+) ||
+value.startsWith(
+'https://'
+) ||
+value.startsWith(
+'http://'
+)
+){
+
+return (
+'<img class="preview" src="' +
+value +
+'">'
+);
+
+}
+
+return (
+'<div style="font-size:55px;text-align:center;padding:20px">' +
+(value || '🛍️') +
+'</div>'
+);
+
 }
 
 function render(){
 
-ca.innerHTML=
-db.courses.map((c,i)=>
-'<div class="row">'+
+students.innerHTML =
+db.signups.length
+? db.signups
+.map(
+signup => {
 
-'<label>Nombre</label>'+
-'<input value="'+c.name+'" onchange="db.courses['+i+'].name=this.value">'+
+const approved =
+signup.status ===
+'approved';
 
-'<label>Descripción</label>'+
-'<textarea onchange="db.courses['+i+'].description=this.value">'+c.description+'</textarea>'+
+const phone =
+whatsappNumber(
+signup.phone
+);
 
-'<label>Horarios separados con |</label>'+
-'<input value="'+c.schedules.join(' | ')+'" onchange="db.courses['+i+'].schedules=this.value.split(\\'|\\').map(x=>x.trim())">'+
+const whatsappText =
+encodeURIComponent(
+'Hola ' +
+signup.name +
+', te hablamos de Centro Constitución.'
+);
 
-'<label>Inscripción</label>'+
-'<input type="number" value="'+c.inscription+'" onchange="db.courses['+i+'].inscription=+this.value">'+
+return (
 
-'<label>Cuota</label>'+
-'<input type="number" value="'+c.monthly+'" onchange="db.courses['+i+'].monthly=+this.value">'+
+'<div class="student">' +
 
-'<button class="btn secbtn" onclick="saveC()">Guardar curso</button>'+
+'<h3>' +
+safe(
+signup.name
+) +
+' ' +
+safe(
+signup.lastname
+) +
+'</h3>' +
+
+'<p><b>Documento:</b> ' +
+safe(
+signup.document_number
+) +
+'</p>' +
+
+'<p><b>Fecha de nacimiento:</b> ' +
+safe(
+formatBirthDate(
+signup.birth_date
+)
+) +
+'</p>' +
+
+'<p><b>WhatsApp:</b> ' +
+safe(
+signup.phone
+) +
+'</p>' +
+
+'<p><b>Curso:</b> ' +
+safe(
+signup.course_name
+) +
+'</p>' +
+
+'<p><b>Horario:</b> ' +
+safe(
+signup.schedule
+) +
+'</p>' +
+
+'<p><b>Inscripción:</b> $' +
+Number(
+signup.amount || 0
+)
+.toLocaleString(
+'es-AR'
+) +
+'</p>' +
+
+'<span class="status ' +
+(approved
+? 'approved'
+: 'pending') +
+'">' +
+
+(approved
+? '✅ Pago aprobado'
+: '⏳ ' +
+safe(
+signup.status ||
+'Pendiente'
+)) +
+
+'</span>' +
+
+'<br><br>' +
+
+'<a class="btn green" target="_blank" href="https://wa.me/' +
+phone +
+'?text=' +
+whatsappText +
+'">' +
+
+'💬 Hablar por WhatsApp' +
+
+'</a>' +
 
 '</div>'
-).join('');
 
-pa.innerHTML=
-db.products.map((p,i)=>
-'<div class="row">'+
+);
 
-'<label>Producto</label>'+
-'<input value="'+p.name+'" onchange="db.products['+i+'].name=this.value">'+
+}
+)
+.join('')
+:
+'<p>No hay inscripciones todavía.</p>';
 
-'<label>Precio</label>'+
-'<input type="number" value="'+p.price+'" onchange="db.products['+i+'].price=+this.value">'+
+coursesAdmin.innerHTML =
+db.courses
+.map(
+(course,index) =>
 
-'<label>Stock</label>'+
-'<input type="number" value="'+p.stock+'" onchange="db.products['+i+'].stock=+this.value">'+
+'<div class="row">' +
 
-'<button class="btn secbtn" onclick="saveP()">Guardar producto</button>'+
+'<label>Nombre</label>' +
+
+'<input value="' +
+safe(
+course.name
+) +
+'" onchange="db.courses[' +
+index +
+'].name=this.value">' +
+
+'<label>Descripción</label>' +
+
+'<textarea onchange="db.courses[' +
+index +
+'].description=this.value">' +
+safe(
+course.description
+) +
+'</textarea>' +
+
+'<label>Horarios separados con |</label>' +
+
+'<input value="' +
+safe(
+course.schedules.join(
+' | '
+)
+) +
+'" onchange="db.courses[' +
+index +
+'].schedules=this.value.split(\\'|\\').map(x=>x.trim())">' +
+
+'<label>Inscripción</label>' +
+
+'<input type="number" value="' +
+course.inscription +
+'" onchange="db.courses[' +
+index +
+'].inscription=+this.value">' +
+
+'<label>Cuota</label>' +
+
+'<input type="number" value="' +
+course.monthly +
+'" onchange="db.courses[' +
+index +
+'].monthly=+this.value">' +
+
+'<br><br>' +
+
+'<button class="btn secbtn" onclick="saveCourses()">Guardar curso</button>' +
 
 '</div>'
-).join('');
 
-sa.innerHTML=
-db.signups.map(x=>
-'<div class="row">'+
-'<b>'+x.name+'</b><br>'+
-x.courseName+
-' · '+
-x.schedule+
-'<br>'+
-x.status+
-'</div>'
-).join('') ||
-'Sin inscripciones';
+)
+.join('');
 
-oa.innerHTML=
-db.orders.map(x=>
-'<div class="row">'+
-'<b>'+x.customer.name+'</b><br>'+
-'$'+x.total+
-' · '+
-x.status+
+productsAdmin.innerHTML =
+db.products
+.map(
+(product,index) =>
+
+'<div class="row">' +
+
+'<label>Producto</label>' +
+
+'<input value="' +
+safe(
+product.name
+) +
+'" onchange="db.products[' +
+index +
+'].name=this.value">' +
+
+'<label>Foto</label>' +
+
+productPreview(
+product
+) +
+
+'<input type="file" accept="image/*" onchange="changePhoto(event,' +
+index +
+')">' +
+
+'<p class="muted">Elegí una foto del celular y después tocá Guardar producto.</p>' +
+
+'<label>Precio</label>' +
+
+'<input type="number" value="' +
+product.price +
+'" onchange="db.products[' +
+index +
+'].price=+this.value">' +
+
+'<label>Stock</label>' +
+
+'<input type="number" value="' +
+product.stock +
+'" onchange="db.products[' +
+index +
+'].stock=+this.value">' +
+
+'<br><br>' +
+
+'<button class="btn secbtn" onclick="saveProducts()">Guardar producto</button>' +
+
 '</div>'
-).join('') ||
-'Sin pedidos';
+
+)
+.join('');
+
 }
 
-window.saveC=async()=>{
+window.changePhoto =
+(event,index) => {
+
+const file =
+event.target.files?.[0];
+
+if(!file){
+return;
+}
+
+if(
+!file.type.startsWith(
+'image/'
+)
+){
+
+alert(
+'Elegí una imagen válida.'
+);
+
+return;
+
+}
+
+const reader =
+new FileReader();
+
+reader.onload =
+() => {
+
+const image =
+new Image();
+
+image.onload =
+() => {
+
+const max =
+850;
+
+let width =
+image.width;
+
+let height =
+image.height;
+
+if(
+width > height &&
+width > max
+){
+
+height =
+Math.round(
+height *
+max /
+width
+);
+
+width =
+max;
+
+}else if(
+height > max
+){
+
+width =
+Math.round(
+width *
+max /
+height
+);
+
+height =
+max;
+
+}
+
+const canvas =
+document.createElement(
+'canvas'
+);
+
+canvas.width =
+width;
+
+canvas.height =
+height;
+
+const context =
+canvas.getContext(
+'2d'
+);
+
+context.drawImage(
+image,
+0,
+0,
+width,
+height
+);
+
+db.products[
+index
+].emoji =
+canvas.toDataURL(
+'image/jpeg',
+0.7
+);
+
+render();
+
+alert(
+'Foto cargada. Tocá Guardar producto.'
+);
+
+};
+
+image.src =
+reader.result;
+
+};
+
+reader.readAsDataURL(
+file
+);
+
+};
+
+window.saveCourses =
+async () => {
+
 try{
+
 await api(
 '/api/admin/courses',
 {
 method:'PUT',
-body:JSON.stringify({
-courses:db.courses
+body:
+JSON.stringify({
+courses:
+db.courses
 })
 }
 );
 
-alert('Cursos guardados correctamente');
+alert(
+'Cursos guardados.'
+);
+
 await load();
 
-}catch(e){
-alert(e.message);
+}catch(error){
+
+alert(
+error.message
+);
+
 }
+
 };
 
-window.saveP=async()=>{
+window.saveProducts =
+async () => {
+
 try{
+
 await api(
 '/api/admin/products',
 {
 method:'PUT',
-body:JSON.stringify({
-products:db.products
+body:
+JSON.stringify({
+products:
+db.products
 })
 }
 );
 
-alert('Productos guardados correctamente');
+alert(
+'Productos guardados.'
+);
+
 await load();
 
-}catch(e){
-alert(e.message);
+}catch(error){
+
+alert(
+error.message
+);
+
 }
+
 };
 
-window.addC=()=>{
+window.addCourse =
+() => {
+
 db.courses.push({
-id:'c'+Date.now(),
-icon:'🎓',
-name:'Nuevo curso',
-description:'Descripción',
-schedules:['Horario próximamente'],
-inscription:20000,
-monthly:80000
+id:
+'c' +
+Date.now(),
+
+icon:
+'🎓',
+
+name:
+'Nuevo curso',
+
+description:
+'Descripción',
+
+schedules:[
+'Horario próximamente'
+],
+
+inscription:
+20000,
+
+monthly:
+80000
 });
 
 render();
+
 };
 
-window.addP=()=>{
+window.addProduct =
+() => {
+
 db.products.push({
-id:'p'+Date.now(),
-emoji:'🛍️',
-name:'Nuevo producto',
-price:0,
-stock:0
+id:
+'p' +
+Date.now(),
+
+emoji:
+'🛍️',
+
+name:
+'Nuevo producto',
+
+price:
+0,
+
+stock:
+0
 });
 
 render();
+
 };
 
 load();
+
 </script>
 
 </body>
+
 </html>
 `;
 
-app.get('/',(_req,res)=>
-  res.type('html').send(home)
+/* =========================
+   RUTAS WEB
+========================= */
+
+app.get(
+  '/',
+  (_req, res) => {
+    res
+      .type('html')
+      .send(home);
+  }
 );
 
-app.get('/login',(_req,res)=>
-  res.type('html').send(login)
+app.get(
+  '/login',
+  (_req, res) => {
+    res
+      .type('html')
+      .send(login);
+  }
 );
 
-app.get('/admin',auth,(_req,res)=>
-  res.type('html').send(admin)
+app.get(
+  '/admin',
+  (req, res) => {
+    try {
+      const token =
+        req.cookies.admin;
+
+      if (!token) {
+        return res.redirect(
+          '/login'
+        );
+      }
+
+      jwt.verify(
+        token,
+        JWT_SECRET
+      );
+
+      res
+        .type('html')
+        .send(admin);
+
+    } catch {
+      res.redirect(
+        '/login'
+      );
+    }
+  }
 );
+
+/* =========================
+   INICIAR SERVIDOR
+========================= */
 
 app.listen(
   PORT,
-  ()=>console.log(
-    'Centro Constitución en puerto '+PORT
-  )
+  () => {
+    console.log(
+      `Centro Constitución funcionando en puerto ${PORT}`
+    );
+  }
 );
