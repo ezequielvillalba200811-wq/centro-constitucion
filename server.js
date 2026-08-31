@@ -72,7 +72,9 @@ const defaultCourses = [
     name: 'Colorimetría',
     description:
       'Formación profesional en color y diagnóstico.',
-    schedules: ['Horario próximamente'],
+    schedules: [
+      'Horario próximamente'
+    ],
     inscription: 20000,
     monthly: 80000
   },
@@ -82,11 +84,75 @@ const defaultCourses = [
     name: 'Manicuría y Pedicuría',
     description:
       'Manicuría, pedicuría y esmaltado tradicional y semipermanente.',
-    schedules: ['Horario próximamente'],
+    schedules: [
+      'Horario próximamente'
+    ],
     inscription: 20000,
     monthly: 80000
   }
 ];
+
+/* =====================================
+   INFORMACIÓN COMPLETA DE LOS CURSOS
+===================================== */
+
+const defaultCourseDetails = {
+  barberia: {
+    image: '',
+    duration: '4 meses',
+    longDescription:
+      'Curso pensado para quienes quieren aprender barbería desde cero y desarrollar una base sólida para trabajar profesionalmente.',
+    syllabus: [
+      'Uso correcto de máquina, tijera y navaja',
+      'Cortes clásicos y modernos',
+      'Degradados y fades',
+      'Perfilado y terminaciones',
+      'Prácticas con modelos reales'
+    ]
+  },
+
+  peluqueria: {
+    image: '',
+    duration: '4 meses',
+    longDescription:
+      'Formación integral para aprender técnicas fundamentales de peluquería y desarrollar práctica profesional.',
+    syllabus: [
+      'Corte',
+      'Brushing',
+      'Peinados',
+      'Tratamientos capilares',
+      'Prácticas con modelos reales'
+    ]
+  },
+
+  colorimetria: {
+    image: '',
+    duration: '4 meses',
+    longDescription:
+      'Curso enfocado en diagnóstico, teoría del color y técnicas profesionales de coloración.',
+    syllabus: [
+      'Teoría del color',
+      'Diagnóstico capilar',
+      'Alturas de tono y reflejos',
+      'Neutralización',
+      'Mezclas y formulación'
+    ]
+  },
+
+  manicuria: {
+    image: '',
+    duration: 'A confirmar',
+    longDescription:
+      'Capacitación para aprender técnicas de manicuría y pedicuría con práctica y enfoque profesional.',
+    syllabus: [
+      'Preparación de uñas',
+      'Manicuría',
+      'Pedicuría',
+      'Esmaltado tradicional',
+      'Esmaltado semipermanente'
+    ]
+  }
+};
 
 const defaultProducts = [
   {
@@ -121,15 +187,24 @@ let orders = [];
 function supabaseHeaders(extra = {}) {
   return {
     apikey: SUPABASE_SECRET_KEY,
-    Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+    Authorization:
+      `Bearer ${SUPABASE_SECRET_KEY}`,
     'Content-Type': 'application/json',
     ...extra
   };
 }
 
-async function supabaseRequest(path, options = {}) {
-  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
-    throw new Error('Supabase no está configurado.');
+async function supabaseRequest(
+  path,
+  options = {}
+) {
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_SECRET_KEY
+  ) {
+    throw new Error(
+      'Supabase no está configurado.'
+    );
   }
 
   const response = await fetch(
@@ -155,7 +230,10 @@ async function supabaseRequest(path, options = {}) {
   }
 
   if (!response.ok) {
-    console.error('Supabase error:', data);
+    console.error(
+      'Supabase error:',
+      data
+    );
 
     throw new Error(
       data?.message ||
@@ -168,18 +246,77 @@ async function supabaseRequest(path, options = {}) {
 }
 
 /* =====================================
+   CONFIGURACIONES GUARDADAS
+===================================== */
+
+async function getSetting(key) {
+  try {
+    const data =
+      await supabaseRequest(
+        `site_settings?key=eq.${encodeURIComponent(key)}&select=value`
+      );
+
+    if (
+      Array.isArray(data) &&
+      data.length
+    ) {
+      return data[0].value || '';
+    }
+
+    return '';
+
+  } catch (error) {
+    console.error(
+      'Error cargando configuración:',
+      error.message
+    );
+
+    return '';
+  }
+}
+
+async function saveSetting(
+  key,
+  value
+) {
+  return supabaseRequest(
+    'site_settings?on_conflict=key',
+    {
+      method: 'POST',
+
+      headers: {
+        Prefer:
+          'resolution=merge-duplicates,return=representation'
+      },
+
+      body: JSON.stringify({
+        key,
+        value: value || '',
+        updated_at:
+          new Date().toISOString()
+      })
+    }
+  );
+}
+
+/* =====================================
    CURSOS
 ===================================== */
 
 async function getCourses() {
   try {
-    const data = await supabaseRequest(
-      'courses?select=*&order=name.asc'
-    );
+    const data =
+      await supabaseRequest(
+        'courses?select=*&order=name.asc'
+      );
 
-    if (Array.isArray(data) && data.length) {
+    if (
+      Array.isArray(data) &&
+      data.length
+    ) {
       return data;
     }
+
   } catch (error) {
     console.error(
       'Error cargando cursos:',
@@ -195,12 +332,54 @@ async function saveCourses(courses) {
     'courses',
     {
       method: 'POST',
+
       headers: {
         Prefer:
           'resolution=merge-duplicates,return=representation'
       },
-      body: JSON.stringify(courses)
+
+      body:
+        JSON.stringify(courses)
     }
+  );
+}
+
+/* =====================================
+   DETALLES DE LOS CURSOS
+===================================== */
+
+async function getCourseDetails() {
+  const raw =
+    await getSetting(
+      'course_details'
+    );
+
+  if (!raw) {
+    return defaultCourseDetails;
+  }
+
+  try {
+    const parsed =
+      JSON.parse(raw);
+
+    return {
+      ...defaultCourseDetails,
+      ...parsed
+    };
+
+  } catch {
+    return defaultCourseDetails;
+  }
+}
+
+async function saveCourseDetails(
+  details
+) {
+  return saveSetting(
+    'course_details',
+    JSON.stringify(
+      details || {}
+    )
   );
 }
 
@@ -210,13 +389,18 @@ async function saveCourses(courses) {
 
 async function getProducts() {
   try {
-    const data = await supabaseRequest(
-      'products?select=*&order=name.asc'
-    );
+    const data =
+      await supabaseRequest(
+        'products?select=*&order=name.asc'
+      );
 
-    if (Array.isArray(data) && data.length) {
+    if (
+      Array.isArray(data) &&
+      data.length
+    ) {
       return data;
     }
+
   } catch (error) {
     console.error(
       'Error cargando productos:',
@@ -232,62 +416,34 @@ async function saveProducts(products) {
     'products',
     {
       method: 'POST',
+
       headers: {
         Prefer:
           'resolution=merge-duplicates,return=representation'
       },
-      body: JSON.stringify(products)
+
+      body:
+        JSON.stringify(products)
     }
   );
 }
 
 /* =====================================
-   FONDO DEL SITIO
+   FONDO
 ===================================== */
 
 async function getBackground() {
-  try {
-    const data = await supabaseRequest(
-      'site_settings?key=eq.background_image&select=value'
-    );
-
-    if (
-      Array.isArray(data) &&
-      data.length &&
-      data[0].value
-    ) {
-      return data[0].value;
-    }
-
-    return '';
-  } catch (error) {
-    console.error(
-      'Error cargando fondo:',
-      error.message
-    );
-
-    return '';
-  }
-}
-
-async function saveBackground(value) {
-  return supabaseRequest(
-    'site_settings?on_conflict=key',
-    {
-      method: 'POST',
-      headers: {
-        Prefer:
-          'resolution=merge-duplicates,return=representation'
-      },
-      body: JSON.stringify({
-        key: 'background_image',
-        value: value || '',
-        updated_at: new Date().toISOString()
-      })
-    }
+  return getSetting(
+    'background_image'
   );
 }
 
+async function saveBackground(value) {
+  return saveSetting(
+    'background_image',
+    value || ''
+  );
+}
 /* =====================================
    INSCRIPCIONES
 ===================================== */
@@ -297,9 +453,11 @@ async function createSignup(data) {
     'signups',
     {
       method: 'POST',
+
       headers: {
         Prefer: 'return=representation'
       },
+
       body: JSON.stringify(data)
     }
   );
@@ -318,6 +476,7 @@ async function getSignups() {
     return Array.isArray(data)
       ? data
       : [];
+
   } catch (error) {
     console.error(
       'Error cargando inscripciones:',
@@ -342,6 +501,7 @@ async function getSignupById(id) {
     }
 
     return null;
+
   } catch (error) {
     console.error(
       'Error buscando inscripción:',
@@ -360,14 +520,17 @@ async function updateSignupPayment(
     `signups?id=eq.${encodeURIComponent(signupId)}`,
     {
       method: 'PATCH',
+
       headers: {
         Prefer: 'return=representation'
       },
+
       body: JSON.stringify({
         status:
           payment.status === 'approved'
             ? 'approved'
             : payment.status,
+
         payment_id:
           String(payment.id || '')
       })
@@ -379,7 +542,10 @@ async function updateSignupPayment(
    MERCADO PAGO
 ===================================== */
 
-async function mpRequest(path, options = {}) {
+async function mpRequest(
+  path,
+  options = {}
+) {
   if (!MP_ACCESS_TOKEN) {
     throw new Error(
       'Mercado Pago no está configurado.'
@@ -390,16 +556,19 @@ async function mpRequest(path, options = {}) {
     'https://api.mercadopago.com' + path,
     {
       ...options,
+
       headers: {
         Authorization:
           `Bearer ${MP_ACCESS_TOKEN}`,
+
         'Content-Type':
           'application/json'
       }
     }
   );
 
-  const data = await response.json();
+  const data =
+    await response.json();
 
   if (!response.ok) {
     console.error(
@@ -426,13 +595,15 @@ async function createPreference({
     '/checkout/preferences',
     {
       method: 'POST',
+
       body: JSON.stringify({
         items: [
           {
             title,
             quantity: 1,
             currency_id: 'ARS',
-            unit_price: Number(amount)
+            unit_price:
+              Number(amount)
           }
         ],
 
@@ -447,13 +618,16 @@ async function createPreference({
         back_urls: {
           success:
             `${PUBLIC_URL}/?pay=success`,
+
           pending:
             `${PUBLIC_URL}/?pay=pending`,
+
           failure:
             `${PUBLIC_URL}/?pay=failure`
         },
 
-        auto_return: 'approved',
+        auto_return:
+          'approved',
 
         notification_url:
           `${PUBLIC_URL}/api/webhook`
@@ -469,31 +643,37 @@ async function createPreference({
 app.get(
   '/api/config',
   async (_req, res) => {
+
     const [
       courses,
       products,
-      background
-    ] = await Promise.all([
-      getCourses(),
-      getProducts(),
-      getBackground()
-    ]);
+      background,
+      courseDetails
+    ] =
+      await Promise.all([
+        getCourses(),
+        getProducts(),
+        getBackground(),
+        getCourseDetails()
+      ]);
 
     res.json({
       courses,
       products,
-      background
+      background,
+      courseDetails
     });
   }
 );
 
 /* =====================================
-   OBTENER UNA INSCRIPCIÓN
+   OBTENER INSCRIPCIÓN
 ===================================== */
 
 app.get(
   '/api/signup/:id',
   async (req, res) => {
+
     try {
       const signup =
         await getSignupById(
@@ -512,6 +692,7 @@ app.get(
       res.json(signup);
 
     } catch (error) {
+
       res
         .status(500)
         .json({
@@ -529,7 +710,9 @@ app.get(
 app.post(
   '/api/signup',
   async (req, res) => {
+
     try {
+
       const {
         name,
         lastname,
@@ -576,6 +759,7 @@ app.post(
       }
 
       const signup = {
+
         id:
           'ins-' +
           Date.now() +
@@ -608,16 +792,21 @@ app.post(
         schedule,
 
         amount:
-          Number(course.inscription),
+          Number(
+            course.inscription
+          ),
 
         status:
           'pending'
       };
 
-      await createSignup(signup);
+      await createSignup(
+        signup
+      );
 
       const preference =
         await createPreference({
+
           title:
             `Inscripción ${course.name}`,
 
@@ -632,6 +821,7 @@ app.post(
         });
 
       res.json({
+
         checkoutUrl:
           preference.init_point ||
           preference.sandbox_init_point,
@@ -640,6 +830,7 @@ app.post(
       });
 
     } catch (error) {
+
       console.error(error);
 
       res
@@ -654,13 +845,15 @@ app.post(
 );
 
 /* =====================================
-   PEDIDOS
+   PEDIDOS DE LA TIENDA
 ===================================== */
 
 app.post(
   '/api/order',
   async (req, res) => {
+
     try {
+
       const products =
         await getProducts();
 
@@ -670,6 +863,7 @@ app.post(
         const item of
         req.body.items || []
       ) {
+
         const product =
           products.find(
             product =>
@@ -678,6 +872,7 @@ app.post(
           );
 
         if (!product) {
+
           return res
             .status(400)
             .json({
@@ -688,10 +883,13 @@ app.post(
 
         total +=
           Number(product.price) *
-          Number(item.qty || 1);
+          Number(
+            item.qty || 1
+          );
       }
 
       if (total <= 0) {
+
         return res
           .status(400)
           .json({
@@ -701,6 +899,7 @@ app.post(
       }
 
       const order = {
+
         id:
           'ped-' +
           Date.now(),
@@ -717,10 +916,13 @@ app.post(
           'pending'
       };
 
-      orders.unshift(order);
+      orders.unshift(
+        order
+      );
 
       const preference =
         await createPreference({
+
           title:
             'Pedido Centro Constitución',
 
@@ -735,12 +937,14 @@ app.post(
         });
 
       res.json({
+
         checkoutUrl:
           preference.init_point ||
           preference.sandbox_init_point
       });
 
     } catch (error) {
+
       console.error(error);
 
       res
@@ -761,9 +965,11 @@ app.post(
 app.post(
   '/api/webhook',
   async (req, res) => {
+
     res.sendStatus(200);
 
     try {
+
       const paymentId =
         req.query['data.id'] ||
         req.body?.data?.id;
@@ -785,8 +991,11 @@ app.post(
       }
 
       if (
-        reference.startsWith('ins-')
+        reference.startsWith(
+          'ins-'
+        )
       ) {
+
         await updateSignupPayment(
           reference,
           payment
@@ -796,8 +1005,11 @@ app.post(
       }
 
       if (
-        reference.startsWith('ped-')
+        reference.startsWith(
+          'ped-'
+        )
       ) {
+
         const order =
           orders.find(
             item =>
@@ -805,6 +1017,7 @@ app.post(
           );
 
         if (order) {
+
           order.status =
             payment.status ===
             'approved'
@@ -814,6 +1027,7 @@ app.post(
       }
 
     } catch (error) {
+
       console.error(
         'Webhook:',
         error
@@ -831,11 +1045,14 @@ function auth(
   res,
   next
 ) {
+
   try {
+
     const token =
       req.cookies.admin;
 
     if (!token) {
+
       return res
         .status(401)
         .end();
@@ -849,6 +1066,7 @@ function auth(
     next();
 
   } catch {
+
     res
       .status(401)
       .end();
@@ -858,6 +1076,7 @@ function auth(
 app.post(
   '/api/login',
   (req, res) => {
+
     const email =
       process.env.ADMIN_EMAIL ||
       'admin@centroconstitucion.com';
@@ -870,6 +1089,7 @@ app.post(
       req.body.email !== email ||
       req.body.password !== password
     ) {
+
       return res
         .status(401)
         .json({
@@ -885,14 +1105,14 @@ app.post(
         { email },
         JWT_SECRET,
         {
-          expiresIn:
-            '12h'
+          expiresIn: '12h'
         }
       ),
 
       {
         httpOnly: true,
         sameSite: 'lax',
+
         secure:
           PUBLIC_URL.startsWith(
             'https://'
@@ -914,17 +1134,20 @@ app.get(
   '/api/admin',
   auth,
   async (_req, res) => {
+
     const [
       courses,
       products,
       signups,
-      background
+      background,
+      courseDetails
     ] =
       await Promise.all([
         getCourses(),
         getProducts(),
         getSignups(),
-        getBackground()
+        getBackground(),
+        getCourseDetails()
       ]);
 
     res.json({
@@ -932,7 +1155,8 @@ app.get(
       products,
       signups,
       orders,
-      background
+      background,
+      courseDetails
     });
   }
 );
@@ -941,7 +1165,9 @@ app.put(
   '/api/admin/courses',
   auth,
   async (req, res) => {
+
     try {
+
       await saveCourses(
         req.body.courses
       );
@@ -951,6 +1177,9 @@ app.put(
       });
 
     } catch (error) {
+
+      console.error(error);
+
       res
         .status(500)
         .json({
@@ -961,11 +1190,47 @@ app.put(
   }
 );
 
+/* =====================================
+   GUARDAR DETALLES DE CURSOS
+===================================== */
+
+app.put(
+  '/api/admin/course-details',
+  auth,
+  async (req, res) => {
+
+    try {
+
+      await saveCourseDetails(
+        req.body.courseDetails ||
+        {}
+      );
+
+      res.json({
+        ok: true
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      res
+        .status(500)
+        .json({
+          error:
+            'No se pudo guardar la información de los cursos.'
+        });
+    }
+  }
+);
+
 app.put(
   '/api/admin/products',
   auth,
   async (req, res) => {
+
     try {
+
       await saveProducts(
         req.body.products
       );
@@ -975,6 +1240,7 @@ app.put(
       });
 
     } catch (error) {
+
       console.error(error);
 
       res
@@ -995,18 +1261,28 @@ app.put(
   '/api/admin/background',
   auth,
   async (req, res) => {
+
     try {
+
       const value =
         String(
-          req.body.background || ''
+          req.body.background ||
+          ''
         );
 
       if (
         value &&
-        !value.startsWith('data:image/') &&
-        !value.startsWith('https://') &&
-        !value.startsWith('http://')
+        !value.startsWith(
+          'data:image/'
+        ) &&
+        !value.startsWith(
+          'https://'
+        ) &&
+        !value.startsWith(
+          'http://'
+        )
       ) {
+
         return res
           .status(400)
           .json({
@@ -1024,6 +1300,7 @@ app.put(
       });
 
     } catch (error) {
+
       console.error(error);
 
       res
@@ -1035,7 +1312,6 @@ app.put(
     }
   }
 );
-
 /* =====================================
    CSS
 ===================================== */
@@ -1174,6 +1450,35 @@ border-radius:24px;
 padding:22px
 }
 
+/* CURSOS */
+
+.courseCard{
+cursor:pointer;
+transition:.2s ease
+}
+
+.courseCard:hover{
+transform:translateY(-3px);
+box-shadow:0 12px 30px rgba(0,0,0,.08)
+}
+
+.courseThumb{
+height:210px;
+border-radius:18px;
+background:#e8ddd1;
+overflow:hidden;
+display:grid;
+place-items:center;
+font-size:64px;
+margin-bottom:18px
+}
+
+.courseThumb img{
+width:100%;
+height:100%;
+object-fit:cover
+}
+
 .tag{
 display:inline-block;
 background:#f2ece5;
@@ -1234,11 +1539,18 @@ border-radius:12px;
 background:#fff
 }
 
+textarea{
+min-height:100px;
+resize:vertical
+}
+
 .signup{
 display:grid;
 grid-template-columns:.85fr 1.15fr;
 gap:40px
 }
+
+/* PRODUCTOS */
 
 .product{
 background:rgba(255,255,255,.96);
@@ -1263,7 +1575,8 @@ object-fit:cover;
 display:block
 }
 
-.preview{
+.preview,
+.coursePreview{
 width:100%;
 height:220px;
 border-radius:16px;
@@ -1284,6 +1597,8 @@ margin:15px 0
 .pb{
 padding:18px
 }
+
+/* CARRITO */
 
 .drawer{
 position:fixed;
@@ -1311,10 +1626,20 @@ padding:16px 0;
 border-bottom:1px solid #ddd
 }
 
+/* ADMIN */
+
 .admin{
 display:grid;
 grid-template-columns:1fr 1fr;
 gap:18px
+}
+
+.adminCourse{
+background:#faf8f5;
+border:1px solid #e7dfd6;
+border-radius:20px;
+padding:18px;
+margin-bottom:18px
 }
 
 .login{
@@ -1365,6 +1690,8 @@ margin:0 0 10px
 margin:5px 0
 }
 
+/* PAGO */
+
 .paymentBox{
 display:none;
 position:fixed;
@@ -1392,13 +1719,80 @@ text-align:center
 font-size:60px
 }
 
+/* PÁGINA INDIVIDUAL DEL CURSO */
+
+.detailHero{
+padding:45px 0 80px
+}
+
+.detailGrid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:32px;
+align-items:center
+}
+
+.detailImage{
+height:460px;
+border-radius:30px;
+overflow:hidden;
+background:linear-gradient(145deg,#111,#342b23);
+display:grid;
+place-items:center;
+font-size:90px;
+color:#fff
+}
+
+.detailImage img{
+width:100%;
+height:100%;
+object-fit:cover
+}
+
+.detailBox{
+background:rgba(255,255,255,.96);
+border-radius:28px;
+padding:28px;
+border:1px solid #e5ddd4
+}
+
+.detailBox h1{
+font-size:clamp(44px,6vw,70px)
+}
+
+.detailList{
+padding-left:20px
+}
+
+.detailList li{
+margin:10px 0
+}
+
+.priceGrid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:12px;
+margin:20px 0
+}
+
+.priceBox{
+background:#f3ede6;
+border-radius:18px;
+padding:18px
+}
+
+.priceBox h3{
+margin-bottom:0
+}
+
 @media(max-width:800px){
 
 .heroGrid,
 .grid2,
 .grid3,
 .signup,
-.admin{
+.admin,
+.detailGrid{
 grid-template-columns:1fr
 }
 
@@ -1416,6 +1810,14 @@ padding:50px 0
 
 body{
 background-attachment:scroll
+}
+
+.detailImage{
+height:300px
+}
+
+.priceGrid{
+grid-template-columns:1fr
 }
 
 }
@@ -1531,6 +1933,10 @@ Av. Brasil 1223 · Constitución
 Cursos
 </h2>
 
+<p class="muted">
+Tocá un curso para ver toda la información.
+</p>
+
 <div
 id="courses"
 class="grid2"
@@ -1565,79 +1971,45 @@ class="form"
 >
 
 <div class="field">
-
-<label>
-Nombre
-</label>
-
-<input
-name="name"
-required
->
-
+<label>Nombre</label>
+<input name="name" required>
 </div>
 
 <div class="field">
-
-<label>
-Apellido
-</label>
-
-<input
-name="lastname"
-required
->
-
+<label>Apellido</label>
+<input name="lastname" required>
 </div>
 
 <div class="field">
-
-<label>
-Número de documento
-</label>
-
+<label>Número de documento</label>
 <input
 name="documentNumber"
 required
 inputmode="numeric"
 >
-
 </div>
 
 <div class="field">
-
-<label>
-Fecha de nacimiento
-</label>
-
+<label>Fecha de nacimiento</label>
 <input
 name="birthDate"
 type="date"
 required
 >
-
 </div>
 
 <div class="field">
-
-<label>
-WhatsApp
-</label>
-
+<label>WhatsApp</label>
 <input
 name="phone"
 required
 inputmode="tel"
 placeholder="Ej: 11 1234 5678"
 >
-
 </div>
 
 <div class="field">
-
-<label>
-Curso
-</label>
+<label>Curso</label>
 
 <select
 id="course"
@@ -1741,9 +2113,7 @@ class="btn secbtn"
 target="_blank"
 href="https://wa.me/${BUSINESS_WHATSAPP}"
 >
-
 WhatsApp
-
 </a>
 
 </div>
@@ -1777,29 +2147,13 @@ $0
 <form id="order">
 
 <div class="field">
-
-<label>
-Nombre
-</label>
-
-<input
-name="name"
-required
->
-
+<label>Nombre</label>
+<input name="name" required>
 </div>
 
 <div class="field">
-
-<label>
-WhatsApp
-</label>
-
-<input
-name="phone"
-required
->
-
+<label>WhatsApp</label>
+<input name="phone" required>
 </div>
 
 <button
@@ -1860,9 +2214,7 @@ font-size:17px
 id="closePayment"
 class="btn secbtn"
 >
-
 Cerrar
-
 </button>
 
 </div>
@@ -1872,11 +2224,14 @@ Cerrar
 <script>
 
 let cfg;
+
 let cart = [];
 
 const $ =
 selector =>
-document.querySelector(selector);
+document.querySelector(
+selector
+);
 
 const money =
 number =>
@@ -1928,9 +2283,12 @@ return data;
 function applyBackground(value){
 
 if(!value){
+
 document.body.style.backgroundImage =
 'none';
+
 return;
+
 }
 
 document.body.style.backgroundImage =
@@ -1940,11 +2298,14 @@ value +
 
 }
 
-function productPicture(product){
+function picture(
+value,
+fallback,
+name
+){
 
-const value =
-product.emoji ||
-'🛍️';
+value =
+value || '';
 
 if(
 value.startsWith('data:image/') ||
@@ -1956,20 +2317,26 @@ return (
 '<img src="' +
 value +
 '" alt="' +
-product.name +
+(name || '') +
 '">'
 );
 
 }
 
-return value;
+return (
+fallback ||
+value ||
+'🎓'
+);
 
 }
 
 async function init(){
 
 cfg =
-await api('/api/config');
+await api(
+'/api/config'
+);
 
 applyBackground(
 cfg.background
@@ -1977,12 +2344,28 @@ cfg.background
 
 $('#courses').innerHTML =
 cfg.courses
-.map(course =>
+.map(
+course => {
 
-'<div class="card">' +
+const detail =
+cfg.courseDetails?.[
+course.id
+] || {};
 
-'<div style="font-size:30px">' +
-course.icon +
+return (
+
+'<div class="card courseCard" onclick="location.href=\\'/curso/' +
+course.id +
+'\\'">' +
+
+'<div class="courseThumb">' +
+
+picture(
+detail.image,
+course.icon,
+course.name
+) +
+
 '</div>' +
 
 '<h3>' +
@@ -2007,28 +2390,46 @@ schedule +
 '</div>' +
 
 '<p><b>Inscripción ' +
-money(course.inscription) +
+money(
+course.inscription
+) +
 '</b> · Cuota ' +
-money(course.monthly) +
+money(
+course.monthly
+) +
 '</p>' +
 
-'<button class="btn pri" onclick="choose(\\'' +
+'<button class="btn pri" onclick="event.stopPropagation();location.href=\\'/curso/' +
 course.id +
-'\\')">Inscribirme</button>' +
+'\\'">' +
+
+'Ver curso' +
+
+'</button>' +
 
 '</div>'
 
+);
+
+}
 )
 .join('');
 
 $('#products').innerHTML =
 cfg.products
-.map(product =>
+.map(
+product =>
 
 '<div class="product">' +
 
 '<div class="pic">' +
-productPicture(product) +
+
+picture(
+product.emoji,
+product.emoji || '🛍️',
+product.name
+) +
+
 '</div>' +
 
 '<div class="pb">' +
@@ -2038,7 +2439,9 @@ product.name +
 '</h3>' +
 
 '<b>' +
-money(product.price) +
+money(
+product.price
+) +
 '</b>' +
 
 '<p class="muted">Stock: ' +
@@ -2047,7 +2450,11 @@ product.stock +
 
 '<button class="btn pri" onclick="add(\\'' +
 product.id +
-'\\')">Agregar</button>' +
+'\\')">' +
+
+'Agregar' +
+
+'</button>' +
 
 '</div>' +
 
@@ -2058,7 +2465,8 @@ product.id +
 
 $('#course').innerHTML =
 cfg.courses
-.map(course =>
+.map(
+course =>
 
 '<option value="' +
 course.id +
@@ -2068,6 +2476,28 @@ course.name +
 
 )
 .join('');
+
+const preselected =
+localStorage.getItem(
+'preselectedCourse'
+);
+
+if(
+preselected &&
+cfg.courses.some(
+course =>
+course.id === preselected
+)
+){
+
+$('#course').value =
+preselected;
+
+localStorage.removeItem(
+'preselectedCourse'
+);
+
+}
 
 updateSchedules();
 
@@ -2100,19 +2530,6 @@ schedule +
 
 }
 
-window.choose =
-id => {
-
-$('#course').value =
-id;
-
-updateSchedules();
-
-location.hash =
-'inscripcion';
-
-};
-
 $('#course').onchange =
 updateSchedules;
 
@@ -2144,7 +2561,9 @@ item.qty++;
 cart.push({
 productId:id,
 name:product.name,
-price:Number(product.price),
+price:Number(
+product.price
+),
 qty:1
 });
 
@@ -2269,7 +2688,9 @@ params.get('pay');
 
 const paymentStatus =
 params.get('status') ||
-params.get('collection_status');
+params.get(
+'collection_status'
+);
 
 if(
 pay !== 'success' &&
@@ -2294,11 +2715,10 @@ if(stored){
 
 try{
 
-const parsed =
-JSON.parse(stored);
-
 reference =
-parsed.id || '';
+JSON.parse(
+stored
+).id || '';
 
 }catch{}
 
@@ -2402,6 +2822,7 @@ await api(
 '/api/signup',
 {
 method:'POST',
+
 body:
 JSON.stringify(
 formData
@@ -2468,14 +2889,17 @@ await api(
 '/api/order',
 {
 method:'POST',
+
 body:
 JSON.stringify({
 customer,
+
 items:
 cart.map(
 item => ({
 productId:
 item.productId,
+
 qty:
 item.qty
 })
@@ -2512,22 +2936,357 @@ renderCart();
 
 </html>
 `;
-
 /* =====================================
-   LOGIN
+   PÁGINA INDIVIDUAL DE CADA CURSO
 ===================================== */
 
-const login = `
+function coursePage(courseId) {
+
+return `
 <!doctype html>
 
 <html lang="es">
 
 <head>
 
+<meta charset="utf-8">
+
 <meta
 name="viewport"
 content="width=device-width,initial-scale=1"
 >
+
+<title>Curso | Centro Constitución</title>
+
+<style>
+${css}
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<div class="c nav">
+
+<a href="/">
+
+<img
+class="logo"
+src="/IMG_5279.jpeg"
+>
+
+<b>Centro Constitución</b>
+
+</a>
+
+<a href="/">
+← Volver
+</a>
+
+</div>
+
+</header>
+
+<section class="detailHero">
+
+<div
+class="c detailGrid"
+id="courseContent"
+>
+
+<p>Cargando curso...</p>
+
+</div>
+
+</section>
+
+<script>
+
+const COURSE_ID =
+${JSON.stringify(courseId)};
+
+const money =
+number =>
+new Intl.NumberFormat(
+'es-AR',
+{
+style:'currency',
+currency:'ARS',
+maximumFractionDigits:0
+}
+).format(number);
+
+function applyBackground(value){
+
+if(!value){
+return;
+}
+
+document.body.style.backgroundImage =
+'linear-gradient(rgba(247,243,238,.80),rgba(247,243,238,.80)),url("' +
+value +
+'")';
+
+}
+
+function picture(
+value,
+fallback,
+name
+){
+
+value =
+value || '';
+
+if(
+value.startsWith('data:image/') ||
+value.startsWith('https://') ||
+value.startsWith('http://')
+){
+
+return (
+'<img src="' +
+value +
+'" alt="' +
+(name || '') +
+'">'
+);
+
+}
+
+return fallback || '🎓';
+
+}
+
+async function initCourse(){
+
+try{
+
+const response =
+await fetch('/api/config');
+
+const cfg =
+await response.json();
+
+applyBackground(
+cfg.background
+);
+
+const course =
+cfg.courses.find(
+item =>
+item.id === COURSE_ID
+);
+
+if(!course){
+
+document.getElementById(
+'courseContent'
+).innerHTML =
+'<div class="detailBox"><h2>Curso no encontrado</h2><a class="btn pri" href="/">Volver</a></div>';
+
+return;
+
+}
+
+const detail =
+cfg.courseDetails?.[
+COURSE_ID
+] || {};
+
+const syllabus =
+Array.isArray(
+detail.syllabus
+)
+?
+detail.syllabus
+:
+[];
+
+document.title =
+course.name +
+' | Centro Constitución';
+
+document.getElementById(
+'courseContent'
+).innerHTML =
+
+'<div class="detailImage">' +
+
+picture(
+detail.image,
+course.icon,
+course.name
+) +
+
+'</div>' +
+
+'<div class="detailBox">' +
+
+'<small>CENTRO CONSTITUCIÓN</small>' +
+
+'<h1>' +
+course.name +
+'</h1>' +
+
+'<p class="muted">' +
+(
+detail.longDescription ||
+course.description ||
+''
+) +
+'</p>' +
+
+'<p><b>Duración:</b> ' +
+(
+detail.duration ||
+'A confirmar'
+) +
+'</p>' +
+
+'<h3>¿Qué vas a aprender?</h3>' +
+
+'<ul class="detailList">' +
+
+syllabus
+.map(
+item =>
+'<li>' +
+item +
+'</li>'
+)
+.join('') +
+
+'</ul>' +
+
+'<h3>Días y horarios</h3>' +
+
+'<div>' +
+
+(course.schedules || [])
+.map(
+schedule =>
+'<span class="tag">' +
+schedule +
+'</span>'
+)
+.join('') +
+
+'</div>' +
+
+'<div class="priceGrid">' +
+
+'<div class="priceBox">' +
+
+'<small>INSCRIPCIÓN</small>' +
+
+'<h3>' +
+money(
+course.inscription
+) +
+'</h3>' +
+
+'</div>' +
+
+'<div class="priceBox">' +
+
+'<small>CUOTA</small>' +
+
+'<h3>' +
+money(
+course.monthly
+) +
+'</h3>' +
+
+'</div>' +
+
+'</div>' +
+
+'<button id="enroll" class="btn pri" style="width:100%">' +
+
+'Inscribirme en este curso' +
+
+'</button>' +
+
+'</div>';
+
+document.getElementById(
+'enroll'
+).onclick =
+() => {
+
+localStorage.setItem(
+'preselectedCourse',
+COURSE_ID
+);
+
+location.href =
+'/#inscripcion';
+
+};
+
+}catch(error){
+
+console.error(error);
+
+document.getElementById(
+'courseContent'
+).innerHTML =
+'<div class="detailBox"><h2>No se pudo cargar el curso.</h2><a class="btn pri" href="/">Volver</a></div>';
+
+}
+
+}
+
+initCourse();
+
+</script>
+
+</body>
+
+</html>
+`;
+
+}
+
+app.get(
+'/curso/:id',
+(req,res) => {
+
+res
+.type('html')
+.send(
+coursePage(
+req.params.id
+)
+);
+
+}
+);
+
+/* =====================================
+   LOGIN DEL PANEL
+===================================== */
+
+const loginPage = `
+<!doctype html>
+
+<html lang="es">
+
+<head>
+
+<meta charset="utf-8">
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1"
+>
+
+<title>
+Panel | Centro Constitución
+</title>
 
 <style>
 ${css}
@@ -2540,18 +3299,30 @@ ${css}
 <div class="login">
 
 <form
-id="loginForm"
+id="login"
 class="loginBox"
 >
 
+<div style="text-align:center">
+
 <img
-class="logo"
 src="/IMG_5279.jpeg"
+class="logo"
+style="
+width:75px;
+height:75px
+"
 >
 
 <h2>
 Panel
 </h2>
+
+<p class="muted">
+Centro Constitución
+</p>
+
+</div>
 
 <div class="field">
 
@@ -2590,7 +3361,7 @@ Ingresar
 
 </button>
 
-<p id="loginMessage"></p>
+<p id="msg"></p>
 
 </form>
 
@@ -2598,14 +3369,19 @@ Ingresar
 
 <script>
 
-document
-.getElementById(
-'loginForm'
-)
-.onsubmit =
+document.getElementById(
+'login'
+).onsubmit =
 async event => {
 
 event.preventDefault();
+
+const data =
+Object.fromEntries(
+new FormData(
+event.target
+)
+);
 
 const response =
 await fetch(
@@ -2620,30 +3396,30 @@ headers:{
 
 body:
 JSON.stringify(
-Object.fromEntries(
-new FormData(
-event.target
-)
-)
+data
 )
 }
 );
 
-if(response.ok){
+const result =
+await response
+.json()
+.catch(()=>({}));
 
-location.href =
-'/admin';
+if(!response.ok){
 
-}else{
+document.getElementById(
+'msg'
+).textContent =
+result.error ||
+'No se pudo ingresar.';
 
-document
-.getElementById(
-'loginMessage'
-)
-.textContent =
-'Datos incorrectos';
+return;
 
 }
+
+location.href =
+'/admin/panel';
 
 };
 
@@ -2655,20 +3431,26 @@ document
 `;
 
 /* =====================================
-   PANEL ADMIN
+   PANEL DE ADMINISTRACIÓN
 ===================================== */
 
-const admin = `
+const adminPage = `
 <!doctype html>
 
 <html lang="es">
 
 <head>
 
+<meta charset="utf-8">
+
 <meta
 name="viewport"
 content="width=device-width,initial-scale=1"
 >
+
+<title>
+Administración | Centro Constitución
+</title>
 
 <style>
 ${css}
@@ -2682,19 +3464,21 @@ ${css}
 
 <div class="c nav">
 
-<b>
+<div>
 
 <img
-class="logo"
 src="/IMG_5279.jpeg"
+class="logo"
 >
 
+<b>
 Administración
-
 </b>
 
+</div>
+
 <a href="/">
-Ver web
+Ver sitio
 </a>
 
 </div>
@@ -2705,6 +3489,16 @@ Ver web
 
 <div class="c">
 
+<h1 style="font-size:55px">
+Panel
+</h1>
+
+<p class="muted">
+Desde acá podés editar el sitio.
+</p>
+
+<div class="admin">
+
 <div class="card">
 
 <h2>
@@ -2712,10 +3506,8 @@ Fondo del sitio
 </h2>
 
 <p class="muted">
-Elegí una imagen de tu celular. La vas a poder cambiar cuando quieras.
+Podés elegir una imagen desde tu celular y cambiar el fondo de toda la página.
 </p>
-
-<div id="backgroundPreview"></div>
 
 <input
 id="backgroundFile"
@@ -2723,47 +3515,31 @@ type="file"
 accept="image/*"
 >
 
-<br><br>
+<img
+id="backgroundPreview"
+class="backgroundPreview"
+style="display:none"
+>
+
+<br>
 
 <button
+id="saveBackground"
 class="btn pri"
-onclick="saveSiteBackground()"
 >
-
 Guardar fondo
-
 </button>
 
 <button
+id="removeBackground"
 class="btn secbtn"
-onclick="removeSiteBackground()"
 >
-
 Quitar fondo
-
 </button>
 
-</div>
-
-<br>
-
-<div class="card">
-
-<h2>
-Alumnos inscriptos
-</h2>
-
-<p class="muted">
-Las inscripciones quedan guardadas acá.
-</p>
-
-<div id="students"></div>
+<p id="backgroundMsg"></p>
 
 </div>
-
-<br>
-
-<div class="admin">
 
 <div class="card">
 
@@ -2771,31 +3547,11 @@ Las inscripciones quedan guardadas acá.
 Cursos
 </h2>
 
-<div id="coursesAdmin"></div>
+<p class="muted">
+Acá podés cambiar nombre, foto, información, duración, temario, horarios y precios.
+</p>
 
-<button
-class="btn pri"
-onclick="addCourse()"
->
-+ Curso
-</button>
-
-</div>
-
-<div class="card">
-
-<h2>
-Productos
-</h2>
-
-<div id="productsAdmin"></div>
-
-<button
-class="btn pri"
-onclick="addProduct()"
->
-+ Producto
-</button>
+<div id="adminCourses"></div>
 
 </div>
 
@@ -2805,10 +3561,64 @@ onclick="addProduct()"
 
 </section>
 
+<section class="sec soft">
+
+<div class="c">
+
+<h2>
+Productos
+</h2>
+
+<p class="muted">
+Editá los productos de la tienda y sus fotos.
+</p>
+
+<div
+id="adminProducts"
+class="grid2"
+></div>
+
+</div>
+
+</section>
+
+<section class="sec">
+
+<div class="c">
+
+<h2>
+Alumnos e inscripciones
+</h2>
+
+<div id="students"></div>
+
+</div>
+
+</section>
+
 <script>
 
 let db;
-let selectedBackground = '';
+
+let selectedBackground =
+'';
+
+const $ =
+selector =>
+document.querySelector(
+selector
+);
+
+const money =
+number =>
+new Intl.NumberFormat(
+'es-AR',
+{
+style:'currency',
+currency:'ARS',
+maximumFractionDigits:0
+}
+).format(number);
 
 async function api(
 url,
@@ -2827,29 +3637,28 @@ headers:{
 }
 );
 
-if(
-response.status === 401
-){
-
-location.href =
-'/login';
-
-throw new Error(
-'No autorizado'
-);
-
-}
-
 const data =
 await response
 .json()
 .catch(()=>({}));
 
+if(
+response.status === 401
+){
+
+location.href =
+'/admin';
+
+throw new Error(
+'Sesión vencida'
+);
+
+}
+
 if(!response.ok){
 
 throw new Error(
 data.error ||
-data.message ||
 'Error'
 );
 
@@ -2859,437 +3668,48 @@ return data;
 
 }
 
-async function load(){
-
-db =
-await api(
-'/api/admin'
-);
-
-selectedBackground =
-db.background || '';
-
-render();
-
-}
-
-function safe(value){
+function escapeHtml(value){
 
 return String(
-value || ''
+value ?? ''
 )
-.replaceAll('&','&amp;')
-.replaceAll('<','&lt;')
-.replaceAll('>','&gt;')
-.replaceAll('"','&quot;');
-
-}
-
-function formatBirthDate(value){
-
-if(!value){
-return '-';
-}
-
-const date =
-String(value)
-.split('T')[0];
-
-const parts =
-date.split('-');
-
-if(parts.length !== 3){
-return date;
-}
-
-return (
-parts[2] +
-'/' +
-parts[1] +
-'/' +
-parts[0]
+.replaceAll(
+'&',
+'&amp;'
+)
+.replaceAll(
+'<',
+'&lt;'
+)
+.replaceAll(
+'>',
+'&gt;'
+)
+.replaceAll(
+'"',
+'&quot;'
 );
 
 }
 
-function whatsappNumber(value){
-
-let number =
-String(
-value || ''
-)
-.replace(
-/\\D/g,
-''
-);
-
-if(
-number.startsWith('549')
+function compressImage(
+file,
+maxWidth,
+quality,
+callback
 ){
-return number;
-}
-
-if(
-number.startsWith('54')
-){
-
-number =
-number.slice(2);
-
-}
-
-if(
-number.startsWith('0')
-){
-
-number =
-number.slice(1);
-
-}
-
-if(
-number.startsWith('15')
-){
-
-number =
-number.slice(2);
-
-}
-
-return (
-'549' +
-number
-);
-
-}
-
-function productPreview(product){
-
-const value =
-product.emoji ||
-'';
-
-if(
-value.startsWith('data:image/') ||
-value.startsWith('https://') ||
-value.startsWith('http://')
-){
-
-return (
-'<img class="preview" src="' +
-value +
-'">'
-);
-
-}
-
-return (
-'<div style="font-size:55px;text-align:center;padding:20px">' +
-(value || '🛍️') +
-'</div>'
-);
-
-}
-
-function renderBackground(){
-
-const preview =
-document.getElementById(
-'backgroundPreview'
-);
-
-if(
-selectedBackground
-){
-
-preview.innerHTML =
-'<img class="backgroundPreview" src="' +
-selectedBackground +
-'">';
-
-}else{
-
-preview.innerHTML =
-'<div class="backgroundPreview" style="display:grid;place-items:center">Sin imagen de fondo</div>';
-
-}
-
-}
-
-function render(){
-
-renderBackground();
-
-students.innerHTML =
-db.signups.length
-? db.signups
-.map(
-signup => {
-
-const approved =
-signup.status ===
-'approved';
-
-const phone =
-whatsappNumber(
-signup.phone
-);
-
-const whatsappText =
-encodeURIComponent(
-'Hola ' +
-signup.name +
-', te hablamos de Centro Constitución.'
-);
-
-return (
-
-'<div class="student">' +
-
-'<h3>' +
-safe(signup.name) +
-' ' +
-safe(signup.lastname) +
-'</h3>' +
-
-'<p><b>Documento:</b> ' +
-safe(
-signup.document_number
-) +
-'</p>' +
-
-'<p><b>Fecha de nacimiento:</b> ' +
-safe(
-formatBirthDate(
-signup.birth_date
-)
-) +
-'</p>' +
-
-'<p><b>WhatsApp:</b> ' +
-safe(
-signup.phone
-) +
-'</p>' +
-
-'<p><b>Curso:</b> ' +
-safe(
-signup.course_name
-) +
-'</p>' +
-
-'<p><b>Horario:</b> ' +
-safe(
-signup.schedule
-) +
-'</p>' +
-
-'<p><b>Inscripción:</b> $' +
-Number(
-signup.amount || 0
-)
-.toLocaleString(
-'es-AR'
-) +
-'</p>' +
-
-'<span class="status ' +
-(approved
-? 'approved'
-: 'pending') +
-'">' +
-
-(approved
-? '✅ Pago aprobado'
-: '⏳ ' +
-safe(
-signup.status ||
-'Pendiente'
-)) +
-
-'</span>' +
-
-'<br><br>' +
-
-'<a class="btn green" target="_blank" href="https://wa.me/' +
-phone +
-'?text=' +
-whatsappText +
-'">' +
-
-'💬 Hablar por WhatsApp' +
-
-'</a>' +
-
-'</div>'
-
-);
-
-}
-)
-.join('')
-:
-'<p>No hay inscripciones todavía.</p>';
-
-coursesAdmin.innerHTML =
-db.courses
-.map(
-(course,index) =>
-
-'<div class="row">' +
-
-'<label>Nombre</label>' +
-
-'<input value="' +
-safe(course.name) +
-'" onchange="db.courses[' +
-index +
-'].name=this.value">' +
-
-'<label>Descripción</label>' +
-
-'<textarea onchange="db.courses[' +
-index +
-'].description=this.value">' +
-safe(course.description) +
-'</textarea>' +
-
-'<label>Horarios separados con |</label>' +
-
-'<input value="' +
-safe(
-course.schedules.join(
-' | '
-)
-) +
-'" onchange="db.courses[' +
-index +
-'].schedules=this.value.split(\\'|\\').map(x=>x.trim())">' +
-
-'<label>Inscripción</label>' +
-
-'<input type="number" value="' +
-course.inscription +
-'" onchange="db.courses[' +
-index +
-'].inscription=+this.value">' +
-
-'<label>Cuota</label>' +
-
-'<input type="number" value="' +
-course.monthly +
-'" onchange="db.courses[' +
-index +
-'].monthly=+this.value">' +
-
-'<br><br>' +
-
-'<button class="btn secbtn" onclick="saveCourses()">Guardar curso</button>' +
-
-'</div>'
-
-)
-.join('');
-
-productsAdmin.innerHTML =
-db.products
-.map(
-(product,index) =>
-
-'<div class="row">' +
-
-'<label>Producto</label>' +
-
-'<input value="' +
-safe(product.name) +
-'" onchange="db.products[' +
-index +
-'].name=this.value">' +
-
-'<label>Foto</label>' +
-
-productPreview(
-product
-) +
-
-'<input type="file" accept="image/*" onchange="changePhoto(event,' +
-index +
-')">' +
-
-'<label>Precio</label>' +
-
-'<input type="number" value="' +
-product.price +
-'" onchange="db.products[' +
-index +
-'].price=+this.value">' +
-
-'<label>Stock</label>' +
-
-'<input type="number" value="' +
-product.stock +
-'" onchange="db.products[' +
-index +
-'].stock=+this.value">' +
-
-'<br><br>' +
-
-'<button class="btn secbtn" onclick="saveProducts()">Guardar producto</button>' +
-
-'</div>'
-
-)
-.join('');
-
-}
-
-/* =====================================
-   CAMBIAR FONDO
-===================================== */
-
-document
-.getElementById(
-'backgroundFile'
-)
-.addEventListener(
-'change',
-event => {
-
-const file =
-event.target.files?.[0];
-
-if(!file){
-return;
-}
-
-if(
-!file.type.startsWith(
-'image/'
-)
-){
-
-alert(
-'Elegí una imagen válida.'
-);
-
-return;
-
-}
 
 const reader =
 new FileReader();
 
 reader.onload =
-() => {
+event => {
 
 const image =
 new Image();
 
 image.onload =
 () => {
-
-const maxWidth =
-1400;
 
 let width =
 image.width;
@@ -3337,18 +3757,17 @@ width,
 height
 );
 
-selectedBackground =
+callback(
 canvas.toDataURL(
 'image/jpeg',
-0.68
+quality
+)
 );
-
-renderBackground();
 
 };
 
 image.src =
-reader.result;
+event.target.result;
 
 };
 
@@ -3357,22 +3776,89 @@ file
 );
 
 }
+
+async function loadAdmin(){
+
+db =
+await api(
+'/api/admin'
 );
 
-window.saveSiteBackground =
-async () => {
+selectedBackground =
+db.background || '';
 
-if(
-!selectedBackground
-){
+renderBackground();
 
-alert(
-'Elegí una imagen primero.'
-);
+renderCourses();
 
-return;
+renderProducts();
+
+renderStudents();
 
 }
+
+function renderBackground(){
+
+const preview =
+$('#backgroundPreview');
+
+if(
+selectedBackground
+){
+
+preview.src =
+selectedBackground;
+
+preview.style.display =
+'block';
+
+}else{
+
+preview.style.display =
+'none';
+
+}
+
+}
+
+$('#backgroundFile')
+.onchange =
+event => {
+
+const file =
+event.target.files?.[0];
+
+if(!file){
+return;
+}
+
+compressImage(
+file,
+1400,
+0.68,
+result => {
+
+selectedBackground =
+result;
+
+renderBackground();
+
+$('#backgroundMsg')
+.textContent =
+'Imagen lista. Tocá Guardar fondo.';
+
+}
+);
+
+};
+
+$('#saveBackground')
+.onclick =
+async () => {
+
+$('#backgroundMsg')
+.textContent =
+'Guardando...';
 
 try{
 
@@ -3380,6 +3866,7 @@ await api(
 '/api/admin/background',
 {
 method:'PUT',
+
 body:
 JSON.stringify({
 background:
@@ -3391,22 +3878,26 @@ selectedBackground
 db.background =
 selectedBackground;
 
-alert(
-'✅ Fondo guardado correctamente.'
-);
+$('#backgroundMsg')
+.textContent =
+'✅ Fondo guardado.';
 
 }catch(error){
 
-alert(
-error.message
-);
+$('#backgroundMsg')
+.textContent =
+error.message;
 
 }
 
 };
 
-window.removeSiteBackground =
+$('#removeBackground')
+.onclick =
 async () => {
+
+selectedBackground =
+'';
 
 try{
 
@@ -3414,6 +3905,7 @@ await api(
 '/api/admin/background',
 {
 method:'PUT',
+
 body:
 JSON.stringify({
 background:''
@@ -3421,39 +3913,233 @@ background:''
 }
 );
 
-selectedBackground =
-'';
-
 db.background =
 '';
 
 renderBackground();
 
-document.getElementById(
-'backgroundFile'
-).value =
-'';
-
-alert(
-'Fondo eliminado.'
-);
+$('#backgroundMsg')
+.textContent =
+'✅ Fondo eliminado.';
 
 }catch(error){
 
-alert(
-error.message
-);
+$('#backgroundMsg')
+.textContent =
+error.message;
 
 }
 
 };
 
 /* =====================================
-   FOTO PRODUCTOS
+   EDITAR CURSOS
 ===================================== */
 
-window.changePhoto =
-(event,index) => {
+function renderCourses(){
+
+$('#adminCourses')
+.innerHTML =
+db.courses
+.map(
+(course,index) => {
+
+const detail =
+db.courseDetails?.[
+course.id
+] || {};
+
+const syllabus =
+Array.isArray(
+detail.syllabus
+)
+?
+detail.syllabus.join(' | ')
+:
+'';
+
+const schedules =
+Array.isArray(
+course.schedules
+)
+?
+course.schedules.join(' | ')
+:
+'';
+
+return ` +
+"`" + `
+<div
+class="adminCourse"
+data-course="${index}"
+>
+
+<h3>
+${escapeHtml(course.name)}
+</h3>
+
+<div class="field">
+
+<label>
+Nombre del curso
+</label>
+
+<input
+class="courseName"
+value="${escapeHtml(course.name)}"
+>
+
+</div>
+
+<div class="field">
+
+<label>
+Descripción corta
+</label>
+
+<textarea class="courseDescription">${escapeHtml(course.description || '')}</textarea>
+
+</div>
+
+<div class="field">
+
+<label>
+Foto del curso
+</label>
+
+<input
+class="courseImageFile"
+type="file"
+accept="image/*"
+>
+
+<img
+class="coursePreview"
+src="${escapeHtml(detail.image || '')}"
+style="${detail.image ? '' : 'display:none'}"
+>
+
+</div>
+
+<div class="field">
+
+<label>
+Descripción completa
+</label>
+
+<textarea class="courseLongDescription">${escapeHtml(detail.longDescription || '')}</textarea>
+
+</div>
+
+<div class="field">
+
+<label>
+Duración
+</label>
+
+<input
+class="courseDuration"
+value="${escapeHtml(detail.duration || '')}"
+placeholder="Ej: 4 meses"
+>
+
+</div>
+
+<div class="field">
+
+<label>
+Temario
+</label>
+
+<textarea
+class="courseSyllabus"
+placeholder="Separá cada tema con |"
+>${escapeHtml(syllabus)}</textarea>
+
+</div>
+
+<div class="field">
+
+<label>
+Horarios
+</label>
+
+<textarea
+class="courseSchedules"
+placeholder="Separá cada horario con |"
+>${escapeHtml(schedules)}</textarea>
+
+</div>
+
+<div class="field">
+
+<label>
+Inscripción
+</label>
+
+<input
+class="courseInscription"
+type="number"
+value="${Number(course.inscription || 0)}"
+>
+
+</div>
+
+<div class="field">
+
+<label>
+Cuota
+</label>
+
+<input
+class="courseMonthly"
+type="number"
+value="${Number(course.monthly || 0)}"
+>
+
+</div>
+
+<button
+class="btn pri saveCourse"
+>
+
+Guardar curso
+
+</button>
+
+<p class="courseMsg"></p>
+
+</div>
+` + "`" + `;
+
+}
+)
+.join('');
+
+document
+.querySelectorAll(
+'.adminCourse'
+)
+.forEach(
+card => {
+
+const index =
+Number(
+card.dataset.course
+);
+
+const course =
+db.courses[
+index
+];
+
+const fileInput =
+card.querySelector(
+'.courseImageFile'
+);
+
+fileInput.onchange =
+event => {
 
 const file =
 event.target.files?.[0];
@@ -3462,149 +4148,387 @@ if(!file){
 return;
 }
 
-if(
-!file.type.startsWith(
-'image/'
-)
-){
-return;
-}
-
-const reader =
-new FileReader();
-
-reader.onload =
-() => {
-
-const image =
-new Image();
-
-image.onload =
-() => {
-
-const max =
-850;
-
-let width =
-image.width;
-
-let height =
-image.height;
+compressImage(
+file,
+1000,
+0.72,
+result => {
 
 if(
-width > height &&
-width > max
+!db.courseDetails
 ){
 
-height =
-Math.round(
-height *
-max /
-width
-);
-
-width =
-max;
-
-}else if(
-height > max
-){
-
-width =
-Math.round(
-width *
-max /
-height
-);
-
-height =
-max;
+db.courseDetails =
+{};
 
 }
 
-const canvas =
-document.createElement(
-'canvas'
+if(
+!db.courseDetails[
+course.id
+]
+){
+
+db.courseDetails[
+course.id
+] =
+{};
+
+}
+
+db.courseDetails[
+course.id
+].image =
+result;
+
+const preview =
+card.querySelector(
+'.coursePreview'
 );
 
-canvas.width =
-width;
+preview.src =
+result;
 
-canvas.height =
-height;
+preview.style.display =
+'block';
 
-canvas
-.getContext('2d')
-.drawImage(
-image,
-0,
-0,
-width,
-height
-);
-
-db.products[
-index
-].emoji =
-canvas.toDataURL(
-'image/jpeg',
-0.7
-);
-
-render();
-
-};
-
-image.src =
-reader.result;
-
-};
-
-reader.readAsDataURL(
-file
+}
 );
 
 };
 
-/* =====================================
-   GUARDAR CURSOS / PRODUCTOS
-===================================== */
-
-window.saveCourses =
+card.querySelector(
+'.saveCourse'
+).onclick =
 async () => {
+
+const msg =
+card.querySelector(
+'.courseMsg'
+);
+
+msg.textContent =
+'Guardando...';
+
+course.name =
+card.querySelector(
+'.courseName'
+).value.trim();
+
+course.description =
+card.querySelector(
+'.courseDescription'
+).value.trim();
+
+course.inscription =
+Number(
+card.querySelector(
+'.courseInscription'
+).value
+);
+
+course.monthly =
+Number(
+card.querySelector(
+'.courseMonthly'
+).value
+);
+
+course.schedules =
+card.querySelector(
+'.courseSchedules'
+).value
+.split('|')
+.map(
+item =>
+item.trim()
+)
+.filter(Boolean);
+
+if(
+!db.courseDetails
+){
+
+db.courseDetails =
+{};
+
+}
+
+const oldDetail =
+db.courseDetails[
+course.id
+] || {};
+
+db.courseDetails[
+course.id
+] = {
+
+...oldDetail,
+
+duration:
+card.querySelector(
+'.courseDuration'
+).value.trim(),
+
+longDescription:
+card.querySelector(
+'.courseLongDescription'
+).value.trim(),
+
+syllabus:
+card.querySelector(
+'.courseSyllabus'
+).value
+.split('|')
+.map(
+item =>
+item.trim()
+)
+.filter(Boolean)
+
+};
 
 try{
 
-await api(
+await Promise.all([
+
+api(
 '/api/admin/courses',
 {
 method:'PUT',
+
 body:
 JSON.stringify({
 courses:
 db.courses
 })
 }
-);
+),
 
-alert(
-'Cursos guardados.'
-);
+api(
+'/api/admin/course-details',
+{
+method:'PUT',
 
-await load();
+body:
+JSON.stringify({
+courseDetails:
+db.courseDetails
+})
+}
+)
+
+]);
+
+msg.textContent =
+'✅ Curso guardado.';
 
 }catch(error){
 
-alert(
-error.message
-);
+msg.textContent =
+error.message;
 
 }
 
 };
 
-window.saveProducts =
+}
+);
+
+}
+/* =====================================
+   PRODUCTOS ADMIN
+===================================== */
+
+function renderProducts(){
+
+$('#adminProducts')
+.innerHTML =
+db.products
+.map(
+(product,index) => {
+
+const image =
+product.emoji || '';
+
+return `
+<div
+class="card"
+data-product="${index}"
+>
+
+<h3>
+${escapeHtml(product.name)}
+</h3>
+
+<div class="field">
+
+<label>
+Nombre
+</label>
+
+<input
+class="productName"
+value="${escapeHtml(product.name)}"
+>
+
+</div>
+
+<div class="field">
+
+<label>
+Foto del producto
+</label>
+
+<input
+class="productImageFile"
+type="file"
+accept="image/*"
+>
+
+<div class="pic productPreview">
+
+${
+image.startsWith('data:image/') ||
+image.startsWith('https://') ||
+image.startsWith('http://')
+?
+`<img src="${escapeHtml(image)}">`
+:
+escapeHtml(image || '🛍️')
+}
+
+</div>
+
+</div>
+
+<div class="field">
+
+<label>
+Precio
+</label>
+
+<input
+class="productPrice"
+type="number"
+value="${Number(product.price || 0)}"
+>
+
+</div>
+
+<div class="field">
+
+<label>
+Stock
+</label>
+
+<input
+class="productStock"
+type="number"
+value="${Number(product.stock || 0)}"
+>
+
+</div>
+
+<button
+class="btn pri saveProduct"
+>
+Guardar producto
+</button>
+
+<p class="productMsg"></p>
+
+</div>
+`;
+
+}
+)
+.join('');
+
+document
+.querySelectorAll(
+'[data-product]'
+)
+.forEach(
+card => {
+
+const index =
+Number(
+card.dataset.product
+);
+
+const product =
+db.products[
+index
+];
+
+const fileInput =
+card.querySelector(
+'.productImageFile'
+);
+
+fileInput.onchange =
+event => {
+
+const file =
+event.target.files?.[0];
+
+if(!file){
+return;
+}
+
+compressImage(
+file,
+850,
+0.7,
+result => {
+
+product.emoji =
+result;
+
+card.querySelector(
+'.productPreview'
+).innerHTML =
+'<img src="' +
+result +
+'">';
+
+}
+);
+
+};
+
+card.querySelector(
+'.saveProduct'
+).onclick =
 async () => {
+
+const msg =
+card.querySelector(
+'.productMsg'
+);
+
+msg.textContent =
+'Guardando...';
+
+product.name =
+card.querySelector(
+'.productName'
+).value.trim();
+
+product.price =
+Number(
+card.querySelector(
+'.productPrice'
+).value
+);
+
+product.stock =
+Number(
+card.querySelector(
+'.productStock'
+).value
+);
 
 try{
 
@@ -3612,6 +4536,7 @@ await api(
 '/api/admin/products',
 {
 method:'PUT',
+
 body:
 JSON.stringify({
 products:
@@ -3620,80 +4545,156 @@ db.products
 }
 );
 
-alert(
-'Productos guardados.'
-);
-
-await load();
+msg.textContent =
+'✅ Producto guardado.';
 
 }catch(error){
 
-alert(
-error.message
-);
+msg.textContent =
+error.message;
 
 }
 
 };
 
-window.addCourse =
-() => {
+}
+);
 
-db.courses.push({
-id:
-'c' +
-Date.now(),
+}
 
-icon:
-'🎓',
+/* =====================================
+   ALUMNOS
+===================================== */
 
-name:
-'Nuevo curso',
+function renderStudents(){
 
-description:
-'Descripción',
+if(
+!db.signups ||
+!db.signups.length
+){
 
-schedules:[
-'Horario próximamente'
-],
+$('#students')
+.innerHTML =
+'<div class="card"><p>Todavía no hay inscripciones.</p></div>';
 
-inscription:
-20000,
+return;
 
-monthly:
-80000
-});
+}
 
-render();
+$('#students')
+.innerHTML =
+db.signups
+.map(
+signup => {
 
-};
+const statusClass =
+signup.status === 'approved'
+?
+'approved'
+:
+'pending';
 
-window.addProduct =
-() => {
+const statusText =
+signup.status === 'approved'
+?
+'Pago aprobado'
+:
+signup.status || 'Pendiente';
 
-db.products.push({
-id:
-'p' +
-Date.now(),
+const whatsapp =
+String(
+signup.phone || ''
+)
+.replace(/\D/g,'');
 
-emoji:
-'🛍️',
+let whatsappNumber =
+whatsapp;
 
-name:
-'Nuevo producto',
+if(
+whatsappNumber.startsWith('11')
+){
 
-price:
-0,
+whatsappNumber =
+'549' +
+whatsappNumber;
 
-stock:
-0
-});
+}
 
-render();
+return `
+<div class="student">
 
-};
+<h3>
+${escapeHtml(signup.name || '')}
+${escapeHtml(signup.lastname || '')}
+</h3>
 
-load();
+<p>
+<b>Documento:</b>
+${escapeHtml(signup.document_number || '')}
+</p>
+
+<p>
+<b>Fecha de nacimiento:</b>
+${escapeHtml(signup.birth_date || '')}
+</p>
+
+<p>
+<b>WhatsApp:</b>
+${escapeHtml(signup.phone || '')}
+</p>
+
+<p>
+<b>Curso:</b>
+${escapeHtml(signup.course_name || '')}
+</p>
+
+<p>
+<b>Horario:</b>
+${escapeHtml(signup.schedule || '')}
+</p>
+
+<p>
+<b>Importe:</b>
+${money(Number(signup.amount || 0))}
+</p>
+
+<span class="status ${statusClass}">
+${escapeHtml(statusText)}
+</span>
+
+<br><br>
+
+<a
+class="btn green"
+target="_blank"
+href="https://wa.me/${whatsappNumber}"
+>
+Hablar por WhatsApp
+</a>
+
+</div>
+`;
+
+}
+)
+.join('');
+
+}
+
+/* =====================================
+   INICIAR PANEL
+===================================== */
+
+loadAdmin()
+.catch(
+error => {
+
+console.error(
+error
+);
+
+}
+);
 
 </script>
 
@@ -3703,66 +4704,53 @@ load();
 `;
 
 /* =====================================
-   RUTAS
+   RUTAS DE PÁGINAS
 ===================================== */
 
 app.get(
-  '/',
-  (_req, res) => {
-    res
-      .type('html')
-      .send(home);
-  }
+'/',
+(_req,res) => {
+
+res
+.type('html')
+.send(home);
+
+}
 );
 
 app.get(
-  '/login',
-  (_req, res) => {
-    res
-      .type('html')
-      .send(login);
-  }
+'/admin',
+(_req,res) => {
+
+res
+.type('html')
+.send(loginPage);
+
+}
 );
 
 app.get(
-  '/admin',
-  (req, res) => {
-    try {
-      const token =
-        req.cookies.admin;
+'/admin/panel',
+(_req,res) => {
 
-      if (!token) {
-        return res.redirect(
-          '/login'
-        );
-      }
+res
+.type('html')
+.send(adminPage);
 
-      jwt.verify(
-        token,
-        JWT_SECRET
-      );
-
-      res
-        .type('html')
-        .send(admin);
-
-    } catch {
-      res.redirect(
-        '/login'
-      );
-    }
-  }
+}
 );
 
 /* =====================================
-   INICIAR
+   INICIAR SERVIDOR
 ===================================== */
 
 app.listen(
-  PORT,
-  () => {
-    console.log(
-      `Centro Constitución funcionando en puerto ${PORT}`
-    );
-  }
+PORT,
+() => {
+
+console.log(
+`Centro Constitución funcionando en puerto ${PORT}`
+);
+
+}
 );
