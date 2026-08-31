@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 const app = express();
 
 const PORT = process.env.PORT || 3000;
+
 const PUBLIC_URL = (
   process.env.PUBLIC_URL ||
   `http://localhost:${PORT}`
@@ -33,9 +34,9 @@ app.get('/IMG_5279.jpeg', (_req, res) => {
   res.sendFile(process.cwd() + '/IMG_5279.jpeg');
 });
 
-/* =========================
+/* =====================================
    DATOS PREDETERMINADOS
-========================= */
+===================================== */
 
 const defaultCourses = [
   {
@@ -113,9 +114,9 @@ const defaultProducts = [
 
 let orders = [];
 
-/* =========================
+/* =====================================
    SUPABASE
-========================= */
+===================================== */
 
 function supabaseHeaders(extra = {}) {
   return {
@@ -154,7 +155,7 @@ async function supabaseRequest(path, options = {}) {
   }
 
   if (!response.ok) {
-    console.error('Supabase:', data);
+    console.error('Supabase error:', data);
 
     throw new Error(
       data?.message ||
@@ -166,6 +167,10 @@ async function supabaseRequest(path, options = {}) {
   return data;
 }
 
+/* =====================================
+   CURSOS
+===================================== */
+
 async function getCourses() {
   try {
     const data = await supabaseRequest(
@@ -175,33 +180,14 @@ async function getCourses() {
     if (Array.isArray(data) && data.length) {
       return data;
     }
-  } catch (e) {
+  } catch (error) {
     console.error(
-      'Cursos:',
-      e.message
+      'Error cargando cursos:',
+      error.message
     );
   }
 
   return defaultCourses;
-}
-
-async function getProducts() {
-  try {
-    const data = await supabaseRequest(
-      'products?select=*&order=name.asc'
-    );
-
-    if (Array.isArray(data) && data.length) {
-      return data;
-    }
-  } catch (e) {
-    console.error(
-      'Productos:',
-      e.message
-    );
-  }
-
-  return defaultProducts;
 }
 
 async function saveCourses(courses) {
@@ -218,6 +204,29 @@ async function saveCourses(courses) {
   );
 }
 
+/* =====================================
+   PRODUCTOS
+===================================== */
+
+async function getProducts() {
+  try {
+    const data = await supabaseRequest(
+      'products?select=*&order=name.asc'
+    );
+
+    if (Array.isArray(data) && data.length) {
+      return data;
+    }
+  } catch (error) {
+    console.error(
+      'Error cargando productos:',
+      error.message
+    );
+  }
+
+  return defaultProducts;
+}
+
 async function saveProducts(products) {
   return supabaseRequest(
     'products',
@@ -232,9 +241,56 @@ async function saveProducts(products) {
   );
 }
 
-/* =========================
+/* =====================================
+   FONDO DEL SITIO
+===================================== */
+
+async function getBackground() {
+  try {
+    const data = await supabaseRequest(
+      'site_settings?key=eq.background_image&select=value'
+    );
+
+    if (
+      Array.isArray(data) &&
+      data.length &&
+      data[0].value
+    ) {
+      return data[0].value;
+    }
+
+    return '';
+  } catch (error) {
+    console.error(
+      'Error cargando fondo:',
+      error.message
+    );
+
+    return '';
+  }
+}
+
+async function saveBackground(value) {
+  return supabaseRequest(
+    'site_settings?on_conflict=key',
+    {
+      method: 'POST',
+      headers: {
+        Prefer:
+          'resolution=merge-duplicates,return=representation'
+      },
+      body: JSON.stringify({
+        key: 'background_image',
+        value: value || '',
+        updated_at: new Date().toISOString()
+      })
+    }
+  );
+}
+
+/* =====================================
    INSCRIPCIONES
-========================= */
+===================================== */
 
 async function createSignup(data) {
   const result = await supabaseRequest(
@@ -255,16 +311,44 @@ async function createSignup(data) {
 
 async function getSignups() {
   try {
-    return await supabaseRequest(
+    const data = await supabaseRequest(
       'signups?select=*&order=created_at.desc'
     );
-  } catch (e) {
+
+    return Array.isArray(data)
+      ? data
+      : [];
+  } catch (error) {
     console.error(
-      'Inscripciones:',
-      e.message
+      'Error cargando inscripciones:',
+      error.message
     );
 
     return [];
+  }
+}
+
+async function getSignupById(id) {
+  try {
+    const data = await supabaseRequest(
+      `signups?id=eq.${encodeURIComponent(id)}&select=*`
+    );
+
+    if (
+      Array.isArray(data) &&
+      data.length
+    ) {
+      return data[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error(
+      'Error buscando inscripción:',
+      error.message
+    );
+
+    return null;
   }
 }
 
@@ -284,17 +368,16 @@ async function updateSignupPayment(
           payment.status === 'approved'
             ? 'approved'
             : payment.status,
-        payment_id: String(
-          payment.id || ''
-        )
+        payment_id:
+          String(payment.id || '')
       })
     }
   );
 }
 
-/* =========================
+/* =====================================
    MERCADO PAGO
-========================= */
+===================================== */
 
 async function mpRequest(path, options = {}) {
   if (!MP_ACCESS_TOKEN) {
@@ -349,17 +432,17 @@ async function createPreference({
             title,
             quantity: 1,
             currency_id: 'ARS',
-            unit_price:
-              Number(amount)
+            unit_price: Number(amount)
           }
         ],
 
         external_reference:
           reference,
 
-        payer: name
-          ? { name }
-          : undefined,
+        payer:
+          name
+            ? { name }
+            : undefined,
 
         back_urls: {
           success:
@@ -379,29 +462,69 @@ async function createPreference({
   );
 }
 
-/* =========================
-   CONFIGURACIÓN WEB
-========================= */
+/* =====================================
+   CONFIGURACIÓN PÚBLICA
+===================================== */
 
 app.get(
   '/api/config',
   async (_req, res) => {
-    const [courses, products] =
-      await Promise.all([
-        getCourses(),
-        getProducts()
-      ]);
+    const [
+      courses,
+      products,
+      background
+    ] = await Promise.all([
+      getCourses(),
+      getProducts(),
+      getBackground()
+    ]);
 
     res.json({
       courses,
-      products
+      products,
+      background
     });
   }
 );
 
-/* =========================
+/* =====================================
+   OBTENER UNA INSCRIPCIÓN
+===================================== */
+
+app.get(
+  '/api/signup/:id',
+  async (req, res) => {
+    try {
+      const signup =
+        await getSignupById(
+          req.params.id
+        );
+
+      if (!signup) {
+        return res
+          .status(404)
+          .json({
+            error:
+              'No se encontró la inscripción.'
+          });
+      }
+
+      res.json(signup);
+
+    } catch (error) {
+      res
+        .status(500)
+        .json({
+          error:
+            'No se pudo obtener la inscripción.'
+        });
+    }
+  }
+);
+
+/* =====================================
    NUEVA INSCRIPCIÓN
-========================= */
+===================================== */
 
 app.post(
   '/api/signup',
@@ -439,7 +562,8 @@ app.post(
 
       const course =
         courses.find(
-          x => x.id === courseId
+          item =>
+            item.id === courseId
         );
 
       if (!course) {
@@ -467,9 +591,7 @@ app.post(
           String(lastname).trim(),
 
         document_number:
-          String(
-            documentNumber
-          ).trim(),
+          String(documentNumber).trim(),
 
         birth_date:
           birthDate,
@@ -486,11 +608,10 @@ app.post(
         schedule,
 
         amount:
-          Number(
-            course.inscription
-          ),
+          Number(course.inscription),
 
-        status: 'pending'
+        status:
+          'pending'
       };
 
       await createSignup(signup);
@@ -518,21 +639,23 @@ app.post(
         signup
       });
 
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
 
-      res.status(500).json({
-        error:
-          e.message ||
-          'No se pudo realizar la inscripción.'
-      });
+      res
+        .status(500)
+        .json({
+          error:
+            error.message ||
+            'No se pudo realizar la inscripción.'
+        });
     }
   }
 );
 
-/* =========================
-   PEDIDOS DE PRODUCTOS
-========================= */
+/* =====================================
+   PEDIDOS
+===================================== */
 
 app.post(
   '/api/order',
@@ -549,8 +672,8 @@ app.post(
       ) {
         const product =
           products.find(
-            x =>
-              x.id ===
+            product =>
+              product.id ===
               item.productId
           );
 
@@ -565,9 +688,7 @@ app.post(
 
         total +=
           Number(product.price) *
-          Number(
-            item.qty || 1
-          );
+          Number(item.qty || 1);
       }
 
       if (total <= 0) {
@@ -619,21 +740,23 @@ app.post(
           preference.sandbox_init_point
       });
 
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
 
-      res.status(500).json({
-        error:
-          e.message ||
-          'No se pudo iniciar el pago.'
-      });
+      res
+        .status(500)
+        .json({
+          error:
+            error.message ||
+            'No se pudo iniciar el pago.'
+        });
     }
   }
 );
 
-/* =========================
+/* =====================================
    WEBHOOK MERCADO PAGO
-========================= */
+===================================== */
 
 app.post(
   '/api/webhook',
@@ -662,9 +785,7 @@ app.post(
       }
 
       if (
-        reference.startsWith(
-          'ins-'
-        )
+        reference.startsWith('ins-')
       ) {
         await updateSignupPayment(
           reference,
@@ -675,15 +796,12 @@ app.post(
       }
 
       if (
-        reference.startsWith(
-          'ped-'
-        )
+        reference.startsWith('ped-')
       ) {
         const order =
           orders.find(
-            x =>
-              x.id ===
-              reference
+            item =>
+              item.id === reference
           );
 
         if (order) {
@@ -695,20 +813,24 @@ app.post(
         }
       }
 
-    } catch (e) {
+    } catch (error) {
       console.error(
         'Webhook:',
-        e
+        error
       );
     }
   }
 );
 
-/* =========================
+/* =====================================
    LOGIN ADMIN
-========================= */
+===================================== */
 
-function auth(req, res, next) {
+function auth(
+  req,
+  res,
+  next
+) {
   try {
     const token =
       req.cookies.admin;
@@ -746,8 +868,7 @@ app.post(
 
     if (
       req.body.email !== email ||
-      req.body.password !==
-        password
+      req.body.password !== password
     ) {
       return res
         .status(401)
@@ -785,9 +906,9 @@ app.post(
   }
 );
 
-/* =========================
-   PANEL ADMIN API
-========================= */
+/* =====================================
+   API PANEL ADMIN
+===================================== */
 
 app.get(
   '/api/admin',
@@ -796,19 +917,22 @@ app.get(
     const [
       courses,
       products,
-      signups
+      signups,
+      background
     ] =
       await Promise.all([
         getCourses(),
         getProducts(),
-        getSignups()
+        getSignups(),
+        getBackground()
       ]);
 
     res.json({
       courses,
       products,
       signups,
-      orders
+      orders,
+      background
     });
   }
 );
@@ -818,19 +942,6 @@ app.put(
   auth,
   async (req, res) => {
     try {
-      if (
-        !Array.isArray(
-          req.body.courses
-        )
-      ) {
-        return res
-          .status(400)
-          .json({
-            error:
-              'Datos inválidos.'
-          });
-      }
-
       await saveCourses(
         req.body.courses
       );
@@ -839,11 +950,13 @@ app.put(
         ok: true
       });
 
-    } catch (e) {
-      res.status(500).json({
-        error:
-          'No se pudieron guardar los cursos.'
-      });
+    } catch (error) {
+      res
+        .status(500)
+        .json({
+          error:
+            'No se pudieron guardar los cursos.'
+        });
     }
   }
 );
@@ -853,19 +966,6 @@ app.put(
   auth,
   async (req, res) => {
     try {
-      if (
-        !Array.isArray(
-          req.body.products
-        )
-      ) {
-        return res
-          .status(400)
-          .json({
-            error:
-              'Datos inválidos.'
-          });
-      }
-
       await saveProducts(
         req.body.products
       );
@@ -874,31 +974,90 @@ app.put(
         ok: true
       });
 
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
 
-      res.status(500).json({
-        error:
-          'No se pudieron guardar los productos.'
-      });
+      res
+        .status(500)
+        .json({
+          error:
+            'No se pudieron guardar los productos.'
+        });
     }
   }
 );
 
-/* =========================
+/* =====================================
+   GUARDAR FONDO
+===================================== */
+
+app.put(
+  '/api/admin/background',
+  auth,
+  async (req, res) => {
+    try {
+      const value =
+        String(
+          req.body.background || ''
+        );
+
+      if (
+        value &&
+        !value.startsWith('data:image/') &&
+        !value.startsWith('https://') &&
+        !value.startsWith('http://')
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              'La imagen no es válida.'
+          });
+      }
+
+      await saveBackground(
+        value
+      );
+
+      res.json({
+        ok: true
+      });
+
+    } catch (error) {
+      console.error(error);
+
+      res
+        .status(500)
+        .json({
+          error:
+            'No se pudo guardar el fondo.'
+        });
+    }
+  }
+);
+
+/* =====================================
    CSS
-========================= */
+===================================== */
 
 const css = `
 *{
 box-sizing:border-box
 }
 
+html{
+scroll-behavior:smooth
+}
+
 body{
 margin:0;
 font-family:Arial,sans-serif;
 background:#f7f3ee;
-color:#181818
+color:#181818;
+background-size:cover;
+background-position:center;
+background-repeat:no-repeat;
+background-attachment:fixed
 }
 
 a{
@@ -914,7 +1073,8 @@ margin:auto
 header{
 position:sticky;
 top:0;
-background:#f7f3eef5;
+background:rgba(247,243,238,.94);
+backdrop-filter:blur(10px);
 border-bottom:1px solid #e5ddd4;
 z-index:5
 }
@@ -963,6 +1123,13 @@ font-size:42px
 color:#716c66
 }
 
+.heroText{
+background:rgba(247,243,238,.82);
+padding:25px;
+border-radius:28px;
+backdrop-filter:blur(5px)
+}
+
 .heroCard{
 height:430px;
 border-radius:32px;
@@ -984,7 +1151,8 @@ padding:80px 0
 }
 
 .soft{
-background:#efe7dd
+background:rgba(239,231,221,.88);
+backdrop-filter:blur(4px)
 }
 
 .grid2{
@@ -1000,7 +1168,7 @@ gap:18px
 }
 
 .card{
-background:#fff;
+background:rgba(255,255,255,.94);
 border:1px solid #e5ddd4;
 border-radius:24px;
 padding:22px
@@ -1020,7 +1188,8 @@ border:0;
 border-radius:999px;
 padding:13px 18px;
 font-weight:800;
-cursor:pointer
+cursor:pointer;
+display:inline-block
 }
 
 .pri{
@@ -1035,11 +1204,11 @@ border:1px solid #ddd
 
 .green{
 background:#168342;
-color:white
+color:#fff
 }
 
 .form{
-background:#fff;
+background:rgba(255,255,255,.96);
 padding:24px;
 border-radius:24px
 }
@@ -1061,7 +1230,8 @@ textarea{
 width:100%;
 padding:13px;
 border:1px solid #ddd;
-border-radius:12px
+border-radius:12px;
+background:#fff
 }
 
 .signup{
@@ -1071,7 +1241,7 @@ gap:40px
 }
 
 .product{
-background:#fff;
+background:rgba(255,255,255,.96);
 border-radius:22px;
 overflow:hidden;
 border:1px solid #ddd
@@ -1095,11 +1265,20 @@ display:block
 
 .preview{
 width:100%;
-height:180px;
-border-radius:14px;
+height:220px;
+border-radius:16px;
 object-fit:cover;
 background:#eee;
-margin:8px 0
+margin:10px 0
+}
+
+.backgroundPreview{
+width:100%;
+height:260px;
+border-radius:20px;
+object-fit:cover;
+background:#eee;
+margin:15px 0
 }
 
 .pb{
@@ -1186,6 +1365,33 @@ margin:0 0 10px
 margin:5px 0
 }
 
+.paymentBox{
+display:none;
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.72);
+z-index:50;
+align-items:center;
+justify-content:center;
+padding:20px
+}
+
+.paymentBox.open{
+display:flex
+}
+
+.paymentCard{
+width:min(500px,100%);
+background:#fff;
+border-radius:28px;
+padding:28px;
+text-align:center
+}
+
+.paymentIcon{
+font-size:60px
+}
+
 @media(max-width:800px){
 
 .heroGrid,
@@ -1208,15 +1414,20 @@ font-size:34px
 padding:50px 0
 }
 
+body{
+background-attachment:scroll
+}
+
 }
 `;
 
-/* =========================
-   PÁGINA PRINCIPAL
-========================= */
+/* =====================================
+   HOME
+===================================== */
 
 const home = `
 <!doctype html>
+
 <html lang="es">
 
 <head>
@@ -1269,7 +1480,7 @@ Panel
 
 <div class="c heroGrid">
 
-<div>
+<div class="heroText">
 
 <small>
 FORMACIÓN • BELLEZA • PROFESIÓN
@@ -1342,7 +1553,7 @@ id="inscripcion"
 Inscripción online
 </h2>
 
-<p class="muted">
+<p>
 Completá tus datos, elegí tu curso y horario y aboná la inscripción.
 </p>
 
@@ -1362,7 +1573,6 @@ Nombre
 <input
 name="name"
 required
-autocomplete="given-name"
 >
 
 </div>
@@ -1376,7 +1586,6 @@ Apellido
 <input
 name="lastname"
 required
-autocomplete="family-name"
 >
 
 </div>
@@ -1552,9 +1761,7 @@ class="drawer"
 id="close"
 class="btn secbtn"
 >
-
 Cerrar
-
 </button>
 
 <h2>
@@ -1599,9 +1806,7 @@ required
 class="btn pri"
 style="width:100%"
 >
-
 Comprar con Mercado Pago
-
 </button>
 
 <p id="omsg"></p>
@@ -1612,10 +1817,61 @@ Comprar con Mercado Pago
 
 </div>
 
+<div
+id="paymentBox"
+class="paymentBox"
+>
+
+<div class="paymentCard">
+
+<div class="paymentIcon">
+✅
+</div>
+
+<h2>
+¡Pago realizado!
+</h2>
+
+<p>
+Tu inscripción fue registrada correctamente.
+</p>
+
+<p>
+Ahora tocá el botón para enviar los datos de la inscripción a Centro Constitución.
+</p>
+
+<a
+id="sendWhatsApp"
+class="btn green"
+target="_blank"
+style="
+width:100%;
+font-size:17px
+"
+>
+
+💬 Enviar inscripción por WhatsApp
+
+</a>
+
+<br><br>
+
+<button
+id="closePayment"
+class="btn secbtn"
+>
+
+Cerrar
+
+</button>
+
+</div>
+
+</div>
+
 <script>
 
 let cfg;
-
 let cart = [];
 
 const $ =
@@ -1669,6 +1925,21 @@ return data;
 
 }
 
+function applyBackground(value){
+
+if(!value){
+document.body.style.backgroundImage =
+'none';
+return;
+}
+
+document.body.style.backgroundImage =
+'linear-gradient(rgba(247,243,238,.80),rgba(247,243,238,.80)),url("' +
+value +
+'")';
+
+}
+
 function productPicture(product){
 
 const value =
@@ -1676,15 +1947,9 @@ product.emoji ||
 '🛍️';
 
 if(
-value.startsWith(
-'data:image/'
-) ||
-value.startsWith(
-'https://'
-) ||
-value.startsWith(
-'http://'
-)
+value.startsWith('data:image/') ||
+value.startsWith('https://') ||
+value.startsWith('http://')
 ){
 
 return (
@@ -1704,8 +1969,10 @@ return value;
 async function init(){
 
 cfg =
-await api(
-'/api/config'
+await api('/api/config');
+
+applyBackground(
+cfg.background
 );
 
 $('#courses').innerHTML =
@@ -1804,7 +2071,7 @@ course.name +
 
 updateSchedules();
 
-checkPaymentReturn();
+await checkPaymentReturn();
 
 }
 
@@ -1948,11 +2215,30 @@ $('#drawer')
 
 };
 
-function formatDate(date){
+$('#closePayment').onclick =
+() => {
 
-if(!date){
+$('#paymentBox')
+.classList
+.remove('open');
+
+history.replaceState(
+{},
+'',
+'/'
+);
+
+};
+
+function formatDate(value){
+
+if(!value){
 return '';
 }
+
+const date =
+String(value)
+.split('T')[0];
 
 const parts =
 date.split('-');
@@ -1971,90 +2257,124 @@ parts[0]
 
 }
 
-function checkPaymentReturn(){
+async function checkPaymentReturn(){
 
 const params =
 new URLSearchParams(
 location.search
 );
 
+const pay =
+params.get('pay');
+
+const paymentStatus =
+params.get('status') ||
+params.get('collection_status');
+
 if(
-params.get('pay') !==
-'success'
+pay !== 'success' &&
+paymentStatus !== 'approved'
 ){
 return;
 }
+
+let reference =
+params.get(
+'external_reference'
+);
+
+if(!reference){
 
 const stored =
 localStorage.getItem(
 'pendingSignup'
 );
 
-if(!stored){
+if(stored){
+
+try{
+
+const parsed =
+JSON.parse(stored);
+
+reference =
+parsed.id || '';
+
+}catch{}
+
+}
+
+}
+
+if(!reference){
 return;
 }
 
 try{
 
 const signup =
-JSON.parse(stored);
+await api(
+'/api/signup/' +
+encodeURIComponent(
+reference
+)
+);
 
 const message =
 
-'✅ NUEVA INSCRIPCIÓN\\n\\n' +
+'✅ NUEVA INSCRIPCIÓN PAGADA\\n\\n' +
 
 'Nombre: ' +
-signup.name +
+(signup.name || '') +
 '\\n' +
 
 'Apellido: ' +
-signup.lastname +
+(signup.lastname || '') +
 '\\n' +
 
-'Documento: ' +
-signup.documentNumber +
+'Número de documento: ' +
+(signup.document_number || '') +
 '\\n' +
 
 'Fecha de nacimiento: ' +
 formatDate(
-signup.birthDate
+signup.birth_date
 ) +
 '\\n' +
 
 'WhatsApp: ' +
-signup.phone +
+(signup.phone || '') +
 '\\n' +
 
 'Curso: ' +
-signup.courseName +
+(signup.course_name || '') +
 '\\n' +
 
 'Horario: ' +
-signup.schedule +
+(signup.schedule || '') +
 '\\n\\n' +
 
 'Pago realizado por Mercado Pago.';
 
-localStorage.removeItem(
-'pendingSignup'
-);
-
-setTimeout(
-() => {
-
-location.href =
+$('#sendWhatsApp').href =
 'https://wa.me/${BUSINESS_WHATSAPP}?text=' +
 encodeURIComponent(
 message
 );
 
-},
-700
+$('#paymentBox')
+.classList
+.add('open');
+
+localStorage.removeItem(
+'pendingSignup'
 );
 
 }catch(error){
 
-console.error(error);
+console.error(
+error
+);
 
 }
 
@@ -2077,13 +2397,6 @@ event.target
 )
 );
 
-const course =
-cfg.courses.find(
-item =>
-item.id ===
-formData.courseId
-);
-
 const response =
 await api(
 '/api/signup',
@@ -2099,28 +2412,8 @@ formData
 localStorage.setItem(
 'pendingSignup',
 JSON.stringify({
-name:
-formData.name,
-
-lastname:
-formData.lastname,
-
-documentNumber:
-formData.documentNumber,
-
-birthDate:
-formData.birthDate,
-
-phone:
-formData.phone,
-
-courseName:
-course
-? course.name
-: '',
-
-schedule:
-formData.schedule
+id:
+response.signup.id
 })
 );
 
@@ -2220,14 +2513,14 @@ renderCart();
 </html>
 `;
 
-/* =========================
+/* =====================================
    LOGIN
-========================= */
+===================================== */
 
 const login = `
 <!doctype html>
 
-<html>
+<html lang="es">
 
 <head>
 
@@ -2361,9 +2654,9 @@ document
 </html>
 `;
 
-/* =========================
+/* =====================================
    PANEL ADMIN
-========================= */
+===================================== */
 
 const admin = `
 <!doctype html>
@@ -2415,11 +2708,53 @@ Ver web
 <div class="card">
 
 <h2>
+Fondo del sitio
+</h2>
+
+<p class="muted">
+Elegí una imagen de tu celular. La vas a poder cambiar cuando quieras.
+</p>
+
+<div id="backgroundPreview"></div>
+
+<input
+id="backgroundFile"
+type="file"
+accept="image/*"
+>
+
+<br><br>
+
+<button
+class="btn pri"
+onclick="saveSiteBackground()"
+>
+
+Guardar fondo
+
+</button>
+
+<button
+class="btn secbtn"
+onclick="removeSiteBackground()"
+>
+
+Quitar fondo
+
+</button>
+
+</div>
+
+<br>
+
+<div class="card">
+
+<h2>
 Alumnos inscriptos
 </h2>
 
 <p class="muted">
-Todos los datos de las inscripciones quedan guardados acá.
+Las inscripciones quedan guardadas acá.
 </p>
 
 <div id="students"></div>
@@ -2473,6 +2808,7 @@ onclick="addProduct()"
 <script>
 
 let db;
+let selectedBackground = '';
 
 async function api(
 url,
@@ -2492,8 +2828,7 @@ headers:{
 );
 
 if(
-response.status ===
-401
+response.status === 401
 ){
 
 location.href =
@@ -2531,6 +2866,9 @@ await api(
 '/api/admin'
 );
 
+selectedBackground =
+db.background || '';
+
 render();
 
 }
@@ -2540,40 +2878,28 @@ function safe(value){
 return String(
 value || ''
 )
-.replaceAll(
-'&',
-'&amp;'
-)
-.replaceAll(
-'<',
-'&lt;'
-)
-.replaceAll(
-'>',
-'&gt;'
-)
-.replaceAll(
-'"',
-'&quot;'
-);
+.replaceAll('&','&amp;')
+.replaceAll('<','&lt;')
+.replaceAll('>','&gt;')
+.replaceAll('"','&quot;');
 
 }
 
-function formatBirthDate(
-value
-){
+function formatBirthDate(value){
 
 if(!value){
 return '-';
 }
 
-const parts =
-value.split('-');
+const date =
+String(value)
+.split('T')[0];
 
-if(
-parts.length !== 3
-){
-return value;
+const parts =
+date.split('-');
+
+if(parts.length !== 3){
+return date;
 }
 
 return (
@@ -2586,9 +2912,7 @@ parts[0]
 
 }
 
-function whatsappNumber(
-value
-){
+function whatsappNumber(value){
 
 let number =
 String(
@@ -2600,17 +2924,13 @@ value || ''
 );
 
 if(
-number.startsWith(
-'549'
-)
+number.startsWith('549')
 ){
 return number;
 }
 
 if(
-number.startsWith(
-'54'
-)
+number.startsWith('54')
 ){
 
 number =
@@ -2619,9 +2939,7 @@ number.slice(2);
 }
 
 if(
-number.startsWith(
-'0'
-)
+number.startsWith('0')
 ){
 
 number =
@@ -2630,9 +2948,7 @@ number.slice(1);
 }
 
 if(
-number.startsWith(
-'15'
-)
+number.startsWith('15')
 ){
 
 number =
@@ -2640,12 +2956,6 @@ number.slice(2);
 
 }
 
-if(
-number.startsWith(
-'11'
-)
-){
-
 return (
 '549' +
 number
@@ -2653,31 +2963,16 @@ number
 
 }
 
-return (
-'549' +
-number
-);
-
-}
-
-function productPreview(
-product
-){
+function productPreview(product){
 
 const value =
 product.emoji ||
 '';
 
 if(
-value.startsWith(
-'data:image/'
-) ||
-value.startsWith(
-'https://'
-) ||
-value.startsWith(
-'http://'
-)
+value.startsWith('data:image/') ||
+value.startsWith('https://') ||
+value.startsWith('http://')
 ){
 
 return (
@@ -2696,7 +2991,34 @@ return (
 
 }
 
+function renderBackground(){
+
+const preview =
+document.getElementById(
+'backgroundPreview'
+);
+
+if(
+selectedBackground
+){
+
+preview.innerHTML =
+'<img class="backgroundPreview" src="' +
+selectedBackground +
+'">';
+
+}else{
+
+preview.innerHTML =
+'<div class="backgroundPreview" style="display:grid;place-items:center">Sin imagen de fondo</div>';
+
+}
+
+}
+
 function render(){
+
+renderBackground();
 
 students.innerHTML =
 db.signups.length
@@ -2725,13 +3047,9 @@ return (
 '<div class="student">' +
 
 '<h3>' +
-safe(
-signup.name
-) +
+safe(signup.name) +
 ' ' +
-safe(
-signup.lastname
-) +
+safe(signup.lastname) +
 '</h3>' +
 
 '<p><b>Documento:</b> ' +
@@ -2823,9 +3141,7 @@ db.courses
 '<label>Nombre</label>' +
 
 '<input value="' +
-safe(
-course.name
-) +
+safe(course.name) +
 '" onchange="db.courses[' +
 index +
 '].name=this.value">' +
@@ -2835,9 +3151,7 @@ index +
 '<textarea onchange="db.courses[' +
 index +
 '].description=this.value">' +
-safe(
-course.description
-) +
+safe(course.description) +
 '</textarea>' +
 
 '<label>Horarios separados con |</label>' +
@@ -2887,9 +3201,7 @@ db.products
 '<label>Producto</label>' +
 
 '<input value="' +
-safe(
-product.name
-) +
+safe(product.name) +
 '" onchange="db.products[' +
 index +
 '].name=this.value">' +
@@ -2903,8 +3215,6 @@ product
 '<input type="file" accept="image/*" onchange="changePhoto(event,' +
 index +
 ')">' +
-
-'<p class="muted">Elegí una foto del celular y después tocá Guardar producto.</p>' +
 
 '<label>Precio</label>' +
 
@@ -2933,8 +3243,17 @@ index +
 
 }
 
-window.changePhoto =
-(event,index) => {
+/* =====================================
+   CAMBIAR FONDO
+===================================== */
+
+document
+.getElementById(
+'backgroundFile'
+)
+.addEventListener(
+'change',
+event => {
 
 const file =
 event.target.files?.[0];
@@ -2955,6 +3274,200 @@ alert(
 
 return;
 
+}
+
+const reader =
+new FileReader();
+
+reader.onload =
+() => {
+
+const image =
+new Image();
+
+image.onload =
+() => {
+
+const maxWidth =
+1400;
+
+let width =
+image.width;
+
+let height =
+image.height;
+
+if(
+width > maxWidth
+){
+
+height =
+Math.round(
+height *
+maxWidth /
+width
+);
+
+width =
+maxWidth;
+
+}
+
+const canvas =
+document.createElement(
+'canvas'
+);
+
+canvas.width =
+width;
+
+canvas.height =
+height;
+
+const context =
+canvas.getContext(
+'2d'
+);
+
+context.drawImage(
+image,
+0,
+0,
+width,
+height
+);
+
+selectedBackground =
+canvas.toDataURL(
+'image/jpeg',
+0.68
+);
+
+renderBackground();
+
+};
+
+image.src =
+reader.result;
+
+};
+
+reader.readAsDataURL(
+file
+);
+
+}
+);
+
+window.saveSiteBackground =
+async () => {
+
+if(
+!selectedBackground
+){
+
+alert(
+'Elegí una imagen primero.'
+);
+
+return;
+
+}
+
+try{
+
+await api(
+'/api/admin/background',
+{
+method:'PUT',
+body:
+JSON.stringify({
+background:
+selectedBackground
+})
+}
+);
+
+db.background =
+selectedBackground;
+
+alert(
+'✅ Fondo guardado correctamente.'
+);
+
+}catch(error){
+
+alert(
+error.message
+);
+
+}
+
+};
+
+window.removeSiteBackground =
+async () => {
+
+try{
+
+await api(
+'/api/admin/background',
+{
+method:'PUT',
+body:
+JSON.stringify({
+background:''
+})
+}
+);
+
+selectedBackground =
+'';
+
+db.background =
+'';
+
+renderBackground();
+
+document.getElementById(
+'backgroundFile'
+).value =
+'';
+
+alert(
+'Fondo eliminado.'
+);
+
+}catch(error){
+
+alert(
+error.message
+);
+
+}
+
+};
+
+/* =====================================
+   FOTO PRODUCTOS
+===================================== */
+
+window.changePhoto =
+(event,index) => {
+
+const file =
+event.target.files?.[0];
+
+if(!file){
+return;
+}
+
+if(
+!file.type.startsWith(
+'image/'
+)
+){
+return;
 }
 
 const reader =
@@ -3020,12 +3533,9 @@ width;
 canvas.height =
 height;
 
-const context =
-canvas.getContext(
-'2d'
-);
-
-context.drawImage(
+canvas
+.getContext('2d')
+.drawImage(
 image,
 0,
 0,
@@ -3043,10 +3553,6 @@ canvas.toDataURL(
 
 render();
 
-alert(
-'Foto cargada. Tocá Guardar producto.'
-);
-
 };
 
 image.src =
@@ -3059,6 +3565,10 @@ file
 );
 
 };
+
+/* =====================================
+   GUARDAR CURSOS / PRODUCTOS
+===================================== */
 
 window.saveCourses =
 async () => {
@@ -3192,9 +3702,9 @@ load();
 </html>
 `;
 
-/* =========================
-   RUTAS WEB
-========================= */
+/* =====================================
+   RUTAS
+===================================== */
 
 app.get(
   '/',
@@ -3244,9 +3754,9 @@ app.get(
   }
 );
 
-/* =========================
-   INICIAR SERVIDOR
-========================= */
+/* =====================================
+   INICIAR
+===================================== */
 
 app.listen(
   PORT,
