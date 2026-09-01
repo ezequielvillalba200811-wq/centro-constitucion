@@ -1,3 +1,431 @@
+import 'dotenv/config';
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import jwt from 'jsonwebtoken';
+
+const app = express();
+
+const PORT =
+  process.env.PORT || 3000;
+
+const PUBLIC_URL = (
+  process.env.PUBLIC_URL ||
+  `http://localhost:${PORT}`
+).replace(/\/$/, '');
+
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  'cambiar-secreto';
+
+const SUPABASE_URL = (
+  process.env.SUPABASE_URL || ''
+).replace(/\/$/, '');
+
+const SUPABASE_SECRET_KEY =
+  process.env.SUPABASE_SECRET_KEY || '';
+
+const MP_ACCESS_TOKEN =
+  process.env.MP_ACCESS_TOKEN || '';
+
+const BUSINESS_WHATSAPP =
+  process.env.BUSINESS_WHATSAPP ||
+  '5491123456789';
+
+const ADMIN_EMAIL =
+  process.env.ADMIN_EMAIL || '';
+
+const ADMIN_PASSWORD =
+  process.env.ADMIN_PASSWORD || '';
+
+const FACEBOOK_URL =
+  'https://www.facebook.com/profile.php?id=61578004386934';
+
+const INSTAGRAM_URL =
+  'https://www.instagram.com/cursosconstitucion/';
+
+const TIKTOK_URL =
+  'https://www.tiktok.com/@centroconstitucion';
+
+const GOOGLE_URL =
+  'https://share.google/PQctCPxZN564FGlPw';
+
+const ADDRESS =
+  'Av. Brasil 1223, Constitución, CABA';
+
+app.use(express.json());
+
+app.use(
+  express.urlencoded({
+    extended: true
+  })
+);
+
+app.use(cookieParser());
+
+const defaultCourses = [
+  {
+    id: 'barberia',
+    icon: '💈',
+    image: '',
+    name: 'Barbería',
+    description:
+      'Curso de corte masculino desde nivel inicial con prácticas presenciales.',
+    schedules: [
+      'Martes de 16:00 a 18:00',
+      'Sábados de 09:00 a 11:00',
+      'Sábados de 11:00 a 13:00'
+    ],
+    registration: 20000,
+    monthlyFee: 80000
+  },
+
+  {
+    id: 'peluqueria',
+    icon: '✂️',
+    image: '',
+    name: 'Peluquería',
+    description:
+      'Curso de peluquería nivel inicial con prácticas presenciales.',
+    schedules: [
+      'Miércoles de 15:00 a 18:00',
+      'Sábados de 09:00 a 12:00'
+    ],
+    registration: 20000,
+    monthlyFee: 80000
+  },
+
+  {
+    id: 'colorimetria',
+    icon: '🎨',
+    image: '',
+    name: 'Colorimetría',
+    description:
+      'Aprendé teoría del color, diagnóstico y técnicas profesionales.',
+    schedules: [
+      'Horario próximamente'
+    ],
+    registration: 20000,
+    monthlyFee: 80000
+  },
+
+  {
+    id: 'manicuria-pedicuria',
+    icon: '💅',
+    image: '',
+    name: 'Manicuría y Pedicuría',
+    description:
+      'Curso presencial de técnicas de manicuría y pedicuría.',
+    schedules: [
+      'Horario próximamente'
+    ],
+    registration: 20000,
+    monthlyFee: 80000
+  }
+];
+
+const defaultProducts = [
+  {
+    id: 'tijera-profesional',
+    icon: '✂️',
+    image: '',
+    name: 'Tijera profesional',
+    price: 45000,
+    stock: 10
+  },
+
+  {
+    id: 'maquina-corte',
+    icon: '🪒',
+    image: '',
+    name: 'Máquina de corte',
+    price: 90000,
+    stock: 8
+  },
+
+  {
+    id: 'secador-profesional',
+    icon: '💨',
+    image: '',
+    name: 'Secador profesional',
+    price: 70000,
+    stock: 6
+  }
+];
+
+let memoryCourses =
+  [...defaultCourses];
+
+let memoryProducts =
+  [...defaultProducts];
+
+let siteSettings = {
+  backgroundImage:
+    process.env.BACKGROUND_IMAGE || ''
+};
+
+function money(value) {
+  return new Intl.NumberFormat(
+    'es-AR',
+    {
+      style: 'currency',
+      currency: 'ARS',
+      maximumFractionDigits: 0
+    }
+  ).format(
+    Number(value || 0)
+  );
+}
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function slugify(value = '') {
+  return String(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(
+      /[\u0300-\u036f]/g,
+      ''
+    )
+    .replace(
+      /[^a-z0-9]+/g,
+      '-'
+    )
+    .replace(
+      /^-+|-+$/g,
+      ''
+    );
+}
+
+function normalizeSchedules(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (!value) {
+    return [];
+  }
+
+  return String(value)
+    .split('\n')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+async function supabaseRequest(
+  path,
+  options = {}
+) {
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_SECRET_KEY
+  ) {
+    return null;
+  }
+
+  try {
+    const response =
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/${path}`,
+        {
+          ...options,
+
+          headers: {
+            apikey:
+              SUPABASE_SECRET_KEY,
+
+            Authorization:
+              `Bearer ${SUPABASE_SECRET_KEY}`,
+
+            'Content-Type':
+              'application/json',
+
+            ...(options.headers || {})
+          }
+        }
+      );
+
+    if (!response.ok) {
+      console.error(
+        'Supabase:',
+        response.status,
+        await response.text()
+      );
+
+      return null;
+    }
+
+    const text =
+      await response.text();
+
+    if (!text) {
+      return true;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  } catch (error) {
+    console.error(
+      'Supabase error:',
+      error
+    );
+
+    return null;
+  }
+}
+
+async function getCourses() {
+  const data =
+    await supabaseRequest(
+      'courses?select=*&order=name.asc'
+    );
+
+  if (
+    Array.isArray(data) &&
+    data.length
+  ) {
+    memoryCourses =
+      data.map(course => ({
+        id: String(course.id),
+        icon:
+          course.icon || '🎓',
+        image:
+          course.image || '',
+        name:
+          course.name || 'Curso',
+        description:
+          course.description || '',
+        schedules:
+          normalizeSchedules(
+            course.schedules
+          ),
+        registration:
+          Number(
+            course.registration || 0
+          ),
+        monthlyFee:
+          Number(
+            course.monthly_fee ??
+            course.monthlyFee ??
+            0
+          )
+      }));
+  }
+
+  return memoryCourses;
+}
+
+async function getProducts() {
+  const data =
+    await supabaseRequest(
+      'products?select=*&order=name.asc'
+    );
+
+  if (
+    Array.isArray(data) &&
+    data.length
+  ) {
+    memoryProducts =
+      data.map(product => ({
+        id: String(product.id),
+        icon:
+          product.icon || '🛍️',
+        image:
+          product.image || '',
+        name:
+          product.name || 'Artículo',
+        price:
+          Number(
+            product.price || 0
+          ),
+        stock:
+          Number(
+            product.stock || 0
+          )
+      }));
+  }
+
+  return memoryProducts;
+}
+
+async function getSiteSettings() {
+  const data =
+    await supabaseRequest(
+      'site_settings?key=eq.main&select=*'
+    );
+
+  if (
+    Array.isArray(data) &&
+    data[0]
+  ) {
+    siteSettings.backgroundImage =
+      data[0].background_image || '';
+  }
+
+  return siteSettings;
+}
+
+function createAdminToken() {
+  return jwt.sign(
+    {
+      role: 'admin'
+    },
+    JWT_SECRET,
+    {
+      expiresIn: '7d'
+    }
+  );
+}
+
+function adminRequired(
+  req,
+  res,
+  next
+) {
+  const token =
+    req.cookies.admin_token;
+
+  if (!token) {
+    return res.redirect(
+      '/admin/login'
+    );
+  }
+
+  try {
+    const decoded =
+      jwt.verify(
+        token,
+        JWT_SECRET
+      );
+
+    if (
+      decoded.role !== 'admin'
+    ) {
+      throw new Error(
+        'No autorizado'
+      );
+    }
+
+    next();
+  } catch {
+    res.clearCookie(
+      'admin_token'
+    );
+
+    return res.redirect(
+      '/admin/login'
+    );
+  }
+}
 function socialIcons() {
   return {
     facebook: `
