@@ -1,875 +1,620 @@
-import 'dotenv/config';
-import express from 'express';
-import cookieParser from 'cookie-parser';
-import jwt from 'jsonwebtoken';
+function socialIcons() {
+  return {
+    facebook: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor"
+          d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.45h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.77l-.44 2.89h-2.33v6.99A10 10 0 0 0 22 12z"/>
+      </svg>
+    `,
 
-const app = express();
+    instagram: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor"
+          d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.25-3.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5z"/>
+      </svg>
+    `,
 
-const PORT = process.env.PORT || 3000;
+    tiktok: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor"
+          d="M14 3h3.1A5.9 5.9 0 0 0 21 6.9V10a9 9 0 0 1-4-1v6.5A6.5 6.5 0 1 1 10.5 9c.5 0 1 .06 1.5.17v3.2a3.5 3.5 0 1 0 2 3.13V3z"/>
+      </svg>
+    `,
 
-const PUBLIC_URL = (
-  process.env.PUBLIC_URL ||
-  `http://localhost:${PORT}`
-).replace(/\/$/, '');
-
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  'cambiar-secreto';
-
-const SUPABASE_URL = (
-  process.env.SUPABASE_URL || ''
-).replace(/\/$/, '');
-
-const SUPABASE_SECRET_KEY =
-  process.env.SUPABASE_SECRET_KEY || '';
-
-const MP_ACCESS_TOKEN =
-  process.env.MP_ACCESS_TOKEN || '';
-
-const BUSINESS_WHATSAPP =
-  process.env.BUSINESS_WHATSAPP ||
-  '5491123456789';
-
-const ADMIN_EMAIL =
-  process.env.ADMIN_EMAIL || '';
-
-const ADMIN_PASSWORD =
-  process.env.ADMIN_PASSWORD || '';
-
-const FACEBOOK_URL =
-  'https://www.facebook.com/profile.php?id=61578004386934';
-
-const INSTAGRAM_URL =
-  'https://www.instagram.com/cursosconstitucion/';
-
-const TIKTOK_URL =
-  'https://www.tiktok.com/@centroconstitucion';
-
-const GOOGLE_URL =
-  'https://share.google/PQctCPxZN564FGlPw';
-
-const ADDRESS =
-  'Av. Brasil 1223, Constitución, CABA';
-
-app.use(express.json());
-
-app.use(
-  express.urlencoded({
-    extended: true
-  })
-);
-
-app.use(cookieParser());
-
-const defaultCourses = [
-  {
-    id: 'barberia',
-    icon: '💈',
-    name: 'Barbería',
-    description:
-      'Curso de corte masculino desde nivel inicial con prácticas presenciales.',
-    schedules: [
-      'Martes de 16:00 a 18:00',
-      'Sábados de 09:00 a 11:00',
-      'Sábados de 11:00 a 13:00'
-    ],
-    registration: 20000,
-    monthlyFee: 80000
-  },
-
-  {
-    id: 'peluqueria',
-    icon: '✂️',
-    name: 'Peluquería',
-    description:
-      'Curso de peluquería nivel inicial con prácticas presenciales.',
-    schedules: [
-      'Miércoles de 15:00 a 18:00',
-      'Sábados de 09:00 a 12:00'
-    ],
-    registration: 20000,
-    monthlyFee: 80000
-  },
-
-  {
-    id: 'colorimetria',
-    icon: '🎨',
-    name: 'Colorimetría',
-    description:
-      'Aprendé teoría del color, diagnóstico y técnicas profesionales.',
-    schedules: [
-      'Horario próximamente'
-    ],
-    registration: 20000,
-    monthlyFee: 80000
-  },
-
-  {
-    id: 'manicuria-pedicuria',
-    icon: '💅',
-    name: 'Manicuría y Pedicuría',
-    description:
-      'Curso presencial de técnicas de manicuría y pedicuría.',
-    schedules: [
-      'Horario próximamente'
-    ],
-    registration: 20000,
-    monthlyFee: 80000
-  }
-];
-
-const defaultProducts = [
-  {
-    id: 'tijera-profesional',
-    icon: '✂️',
-    name: 'Tijera profesional',
-    price: 45000,
-    stock: 10
-  },
-
-  {
-    id: 'maquina-corte',
-    icon: '🪒',
-    name: 'Máquina de corte',
-    price: 90000,
-    stock: 8
-  },
-
-  {
-    id: 'secador-profesional',
-    icon: '💨',
-    name: 'Secador profesional',
-    price: 70000,
-    stock: 6
-  }
-];
-
-let memoryCourses =
-  [...defaultCourses];
-
-let memoryProducts =
-  [...defaultProducts];
-
-function money(value) {
-  return new Intl.NumberFormat(
-    'es-AR',
-    {
-      style: 'currency',
-      currency: 'ARS',
-      maximumFractionDigits: 0
-    }
-  ).format(
-    Number(value || 0)
-  );
+    google: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor"
+          d="M21.35 11.1H12v3.8h5.35c-.23 1.22-.93 2.25-1.98 2.94v2.44h3.2c1.87-1.72 2.95-4.26 2.95-7.28 0-.65-.06-1.28-.17-1.9z"/>
+        <path fill="currentColor"
+          d="M12 22c2.7 0 4.96-.9 6.57-2.43l-3.2-2.44c-.89.6-2.03.95-3.37.95-2.6 0-4.8-1.75-5.59-4.11H3.1v2.52A9.92 9.92 0 0 0 12 22z"/>
+        <path fill="currentColor"
+          d="M6.41 13.97A5.95 5.95 0 0 1 6.1 12c0-.68.12-1.34.31-1.97V7.51H3.1A10 10 0 0 0 2 12c0 1.61.39 3.13 1.1 4.49l3.31-2.52z"/>
+        <path fill="currentColor"
+          d="M12 5.92c1.47 0 2.79.51 3.83 1.5l2.87-2.87C16.96 2.93 14.7 2 12 2a9.92 9.92 0 0 0-8.9 5.51l3.31 2.52C7.2 7.67 9.4 5.92 12 5.92z"/>
+      </svg>
+    `
+  };
 }
 
-function escapeHtml(value = '') {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
-
-function slugify(value = '') {
-  return String(value)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(
-      /[\u0300-\u036f]/g,
-      ''
-    )
-    .replace(
-      /[^a-z0-9]+/g,
-      '-'
-    )
-    .replace(
-      /^-+|-+$/g,
-      ''
-    );
-}
-
-async function supabaseRequest(
-  path,
-  options = {}
-) {
-  if (
-    !SUPABASE_URL ||
-    !SUPABASE_SECRET_KEY
-  ) {
-    return null;
-  }
-
-  const response =
-    await fetch(
-      `${SUPABASE_URL}/rest/v1/${path}`,
-      {
-        ...options,
-
-        headers: {
-          apikey:
-            SUPABASE_SECRET_KEY,
-
-          Authorization:
-            `Bearer ${SUPABASE_SECRET_KEY}`,
-
-          'Content-Type':
-            'application/json',
-
-          Prefer:
-            'return=representation',
-
-          ...(options.headers || {})
-        }
-      }
-    );
-
-  if (!response.ok) {
-    const text =
-      await response.text();
-
-    console.error(
-      'Supabase error:',
-      response.status,
-      text
-    );
-
-    return null;
-  }
-
-  const text =
-    await response.text();
-
-  if (!text) {
-    return [];
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return [];
-  }
-}
-
-async function getCourses() {
-  const data =
-    await supabaseRequest(
-      'courses?select=*&order=id.asc'
-    );
-
-  if (
-    !data ||
-    !Array.isArray(data) ||
-    !data.length
-  ) {
-    return memoryCourses;
-  }
-
-  return data.map(
-    course => ({
-      id: course.id,
-
-      icon:
-        course.icon || '🎓',
-
-      name:
-        course.name,
-
-      description:
-        course.description || '',
-
-      schedules:
-        Array.isArray(
-          course.schedules
-        )
-          ? course.schedules
-          : [],
-
-      registration:
-        Number(
-          course.registration || 0
-        ),
-
-      monthlyFee:
-        Number(
-          course.monthly_fee ??
-          course.monthlyFee ??
-          0
-        )
-    })
-  );
-}
-
-async function getProducts() {
-  const data =
-    await supabaseRequest(
-      'products?select=*&order=id.asc'
-    );
-
-  if (
-    !data ||
-    !Array.isArray(data) ||
-    !data.length
-  ) {
-    return memoryProducts;
-  }
-
-  return data.map(
-    product => ({
-      id:
-        product.id,
-
-      icon:
-        product.icon || '🛍️',
-
-      name:
-        product.name,
-
-      price:
-        Number(
-          product.price || 0
-        ),
-
-      stock:
-        Number(
-          product.stock || 0
-        )
-    })
-  );
-}
-
-function adminRequired(
-  req,
-  res,
-  next
-) {
-  const token =
-    req.cookies.admin_token;
-
-  if (!token) {
-    return res.redirect(
-      '/admin/login'
-    );
-  }
-
-  try {
-    jwt.verify(
-      token,
-      JWT_SECRET
-    );
-
-    next();
-  } catch {
-    res.clearCookie(
-      'admin_token'
-    );
-
-    return res.redirect(
-      '/admin/login'
-    );
-  }
-}
 function layout(
   title,
-  content
+  content,
+  settings = siteSettings
 ) {
+  const background =
+    settings.backgroundImage
+      ? `
+        linear-gradient(
+          rgba(0,0,0,.72),
+          rgba(0,0,0,.82)
+        ),
+        url("${escapeHtml(
+          settings.backgroundImage
+        )}")
+      `
+      : `
+        linear-gradient(
+          135deg,
+          #080808,
+          #161616
+        )
+      `;
+
   return `
-  <!DOCTYPE html>
-  <html lang="es">
+<!DOCTYPE html>
+<html lang="es">
 
-  <head>
-    <meta charset="UTF-8" />
+<head>
+  <meta charset="UTF-8">
 
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
-    />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
 
-    <title>
-      ${escapeHtml(title)}
-    </title>
+  <title>
+    ${escapeHtml(title)}
+  </title>
 
-    <style>
-      * {
-        box-sizing: border-box;
-      }
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-      html {
-        scroll-behavior: smooth;
-      }
+    html {
+      scroll-behavior: smooth;
+    }
 
-      body {
-        margin: 0;
-        font-family:
-          Arial,
-          Helvetica,
-          sans-serif;
-        background: #0f0f0f;
-        color: #ffffff;
-      }
+    body {
+      margin: 0;
+      min-height: 100vh;
 
-      a {
-        color: inherit;
-        text-decoration: none;
-      }
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 
-      button,
-      input,
-      select,
-      textarea {
-        font: inherit;
-      }
+      color: #fff;
 
-      .container {
-        width: min(1100px, 92%);
-        margin: 0 auto;
-      }
+      background-image:
+        ${background};
 
-      .navbar {
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        background:
-          rgba(
-            10,
-            10,
-            10,
-            0.96
-          );
-        border-bottom:
-          1px solid #222;
-      }
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+    }
 
-      .nav-inner {
-        min-height: 72px;
-        display: flex;
-        align-items: center;
-        justify-content:
-          space-between;
-        gap: 18px;
-      }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
 
-      .brand {
-        font-size: 1.15rem;
-        font-weight: 800;
-      }
+      background:
+        rgba(0,0,0,.20);
+    }
 
-      .brand span {
-        color: #ffd54a;
-      }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
 
-      .nav-links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-      }
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
 
-      .nav-links a {
-        color: #ddd;
-        font-size: 0.95rem;
-      }
+    .container {
+      width: min(
+        1120px,
+        calc(100% - 28px)
+      );
 
-      .nav-links a:hover {
-        color: #ffd54a;
-      }
+      margin: auto;
+    }
 
-      .hero {
-        padding: 85px 0 70px;
-        background:
-          radial-gradient(
-            circle at top right,
-            rgba(
-              255,
-              213,
-              74,
-              0.18
-            ),
-            transparent 35%
-          ),
-          linear-gradient(
-            180deg,
-            #101010 0%,
-            #080808 100%
-          );
-      }
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
 
-      .hero-content {
-        max-width: 760px;
-      }
+      background:
+        rgba(5,5,5,.92);
 
-      .eyebrow {
-        display: inline-block;
-        padding: 8px 12px;
-        border-radius: 999px;
-        background: #1d1d1d;
-        color: #ffd54a;
-        font-weight: 700;
-        margin-bottom: 14px;
-      }
+      backdrop-filter:
+        blur(12px);
 
-      h1 {
-        margin: 0 0 20px;
-        font-size:
-          clamp(
-            2.4rem,
-            8vw,
-            5rem
-          );
-        line-height: 0.98;
-      }
+      border-bottom:
+        1px solid #292929;
+    }
 
-      h2 {
-        margin-top: 0;
-        font-size:
-          clamp(
-            1.8rem,
-            5vw,
-            2.8rem
-          );
-      }
+    .navbar-inner {
+      min-height: 68px;
 
-      .hero p,
-      .section-text {
-        color: #c2c2c2;
-        line-height: 1.7;
-      }
+      display: flex;
+      align-items: center;
+      justify-content:
+        space-between;
 
-      .hero p {
-        font-size: 1.08rem;
-        max-width: 650px;
-      }
+      gap: 16px;
+    }
 
-      section {
-        padding: 70px 0;
-      }
+    .brand {
+      font-size: 20px;
+      font-weight: 900;
+    }
 
-      .section-muted {
-        background: #151515;
-      }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 14px;
 
-      .actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 24px;
-      }
+      flex-wrap: wrap;
+    }
 
-      .btn {
-        border: 0;
-        border-radius: 12px;
-        padding: 13px 18px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-weight: 800;
-      }
+    .nav-links a {
+      color: #ddd;
+      font-weight: 700;
+    }
 
-      .btn-primary {
-        background: #ffd54a;
-        color: #111;
-      }
+    .hero {
+      padding:
+        80px 0
+        60px;
 
-      .btn-dark {
-        background: #1c1c1c;
-        color: #fff;
-        border: 1px solid #333;
-      }
+      text-align: center;
+    }
 
-      .btn-danger {
-        background: #b42318;
-        color: white;
-      }
+    .hero h1 {
+      margin:
+        0 0 14px;
 
-      .grid {
-        display: grid;
-        grid-template-columns:
-          repeat(
-            auto-fit,
-            minmax(
-              240px,
-              1fr
-            )
-          );
-        gap: 18px;
-        margin-top: 30px;
-      }
+      font-size:
+        clamp(
+          38px,
+          8vw,
+          72px
+        );
 
-      .card {
-        background: #171717;
-        border: 1px solid #292929;
-        border-radius: 18px;
-        padding: 22px;
-      }
+      line-height: 1;
+    }
 
-      .card-icon {
-        font-size: 2rem;
-        margin-bottom: 12px;
-      }
+    .hero p {
+      max-width: 720px;
+      margin:
+        0 auto 26px;
 
-      .card h3 {
-        margin-top: 0;
-      }
+      color: #ddd;
 
-      .card p {
-        color: #bcbcbc;
-        line-height: 1.55;
-      }
+      font-size: 18px;
+      line-height: 1.6;
+    }
 
-      .price {
-        color: #ffd54a;
-        font-weight: 800;
-        margin-top: 12px;
-      }
+    section {
+      padding:
+        42px 0;
+    }
 
-      .schedule {
-        margin-top: 12px;
-        color: #ddd;
-      }
+    .section-title {
+      margin:
+        0 0 24px;
 
-      .schedule div {
-        margin-bottom: 6px;
-      }
+      font-size:
+        clamp(
+          28px,
+          5vw,
+          42px
+        );
+    }
 
-      .form-card {
-        max-width: 760px;
-        margin: 30px auto 0;
-        background: #171717;
-        border: 1px solid #292929;
-        border-radius: 18px;
-        padding: 24px;
-      }
+    .grid {
+      display: grid;
 
-      .form-grid {
-        display: grid;
-        grid-template-columns:
-          repeat(
-            auto-fit,
-            minmax(
-              220px,
-              1fr
-            )
-          );
-        gap: 16px;
-      }
+      grid-template-columns:
+        repeat(
+          auto-fit,
+          minmax(240px,1fr)
+        );
 
-      label {
-        display: block;
-        margin-bottom: 7px;
-        font-weight: 700;
-      }
+      gap: 20px;
+    }
 
-      input,
-      select,
-      textarea {
-        width: 100%;
-        padding: 12px;
-        border-radius: 10px;
-        border:
-          1px solid #363636;
-        background: #0e0e0e;
-        color: white;
-      }
+    .card {
+      overflow: hidden;
 
-      textarea {
-        resize: vertical;
-        min-height: 100px;
-      }
+      border:
+        1px solid #303030;
 
-      .full {
-        grid-column: 1 / -1;
+      border-radius: 22px;
+
+      background:
+        rgba(15,15,15,.92);
+
+      box-shadow:
+        0 16px 40px
+        rgba(0,0,0,.28);
+    }
+
+    .card-image {
+      width: 100%;
+      height: 210px;
+
+      object-fit: cover;
+
+      display: block;
+
+      background: #222;
+    }
+
+    .card-placeholder {
+      height: 210px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      background:
+        linear-gradient(
+          135deg,
+          #191919,
+          #292929
+        );
+
+      font-size: 70px;
+    }
+
+    .card-body {
+      padding: 20px;
+    }
+
+    .card h3 {
+      margin:
+        0 0 10px;
+
+      font-size: 23px;
+    }
+
+    .card p {
+      color: #ccc;
+      line-height: 1.5;
+    }
+
+    .price {
+      font-size: 20px;
+      font-weight: 900;
+
+      margin:
+        12px 0;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      min-height: 46px;
+
+      padding:
+        11px 18px;
+
+      border: 0;
+      border-radius: 12px;
+
+      background: #fff;
+      color: #000;
+
+      font-weight: 900;
+
+      cursor: pointer;
+    }
+
+    .button-dark {
+      background: #242424;
+      color: #fff;
+
+      border:
+        1px solid #3a3a3a;
+    }
+
+    .button-full {
+      width: 100%;
+    }
+
+    .form-box {
+      max-width: 760px;
+
+      margin:
+        0 auto;
+
+      padding: 24px;
+
+      border:
+        1px solid #303030;
+
+      border-radius: 22px;
+
+      background:
+        rgba(12,12,12,.94);
+    }
+
+    label {
+      display: block;
+
+      margin:
+        16px 0 7px;
+
+      font-weight: 800;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+
+      padding:
+        13px 14px;
+
+      border:
+        1px solid #444;
+
+      border-radius: 11px;
+
+      background: #181818;
+      color: #fff;
+
+      outline: none;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: #fff;
+    }
+
+    .social-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(
+          4,
+          minmax(0,1fr)
+        );
+
+      gap: 14px;
+    }
+
+    .social-link {
+      min-height: 90px;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      gap: 8px;
+
+      border-radius: 18px;
+
+      background:
+        rgba(15,15,15,.94);
+
+      border:
+        1px solid #303030;
+
+      font-weight: 800;
+    }
+
+    .social-link svg {
+      width: 34px;
+      height: 34px;
+    }
+
+    .map {
+      width: 100%;
+      height: 360px;
+
+      border: 0;
+      border-radius: 20px;
+
+      display: block;
+    }
+
+    .course-detail-image {
+      width: 100%;
+      max-height: 500px;
+
+      object-fit: cover;
+
+      border-radius: 24px;
+
+      margin-bottom: 24px;
+    }
+
+    .admin-section {
+      margin:
+        24px 0;
+
+      padding: 22px;
+
+      border:
+        1px solid #333;
+
+      border-radius: 20px;
+
+      background:
+        rgba(10,10,10,.94);
+    }
+
+    .admin-item {
+      padding:
+        18px 0;
+
+      border-bottom:
+        1px solid #303030;
+    }
+
+    .admin-item:last-child {
+      border-bottom: 0;
+    }
+
+    .admin-image-preview {
+      width: 100%;
+      max-width: 320px;
+      height: 180px;
+
+      object-fit: cover;
+
+      border-radius: 14px;
+
+      margin-top: 10px;
+    }
+
+    .status-paid {
+      color: #72e59a;
+      font-weight: 900;
+    }
+
+    .status-pending {
+      color: #ffd166;
+      font-weight: 900;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+
+      min-width: 850px;
+    }
+
+    th,
+    td {
+      padding: 12px;
+
+      border-bottom:
+        1px solid #333;
+
+      text-align: left;
+    }
+
+    th {
+      color: #aaa;
+    }
+
+    footer {
+      padding:
+        45px 0;
+
+      text-align: center;
+
+      color: #aaa;
+    }
+
+    @media (
+      max-width: 700px
+    ) {
+      .navbar-inner {
+        padding:
+          10px 0;
+
+        align-items:
+          flex-start;
+
+        flex-direction: column;
       }
 
       .social-grid {
-        display: grid;
         grid-template-columns:
           repeat(
-            auto-fit,
-            minmax(
-              170px,
-              1fr
-            )
+            2,
+            1fr
           );
-        gap: 14px;
-        margin-top: 28px;
       }
 
-      .social-card {
-        background: #191919;
-        border:
-          1px solid #2d2d2d;
-        border-radius: 16px;
-        padding: 20px;
+      .hero {
+        padding:
+          55px 0
+          35px;
       }
 
-      .social-icon {
-        font-size: 1.8rem;
-        margin-bottom: 10px;
+      .card-image,
+      .card-placeholder {
+        height: 190px;
       }
+    }
+  </style>
+</head>
 
-      .social-card strong {
-        display: block;
-        margin-bottom: 5px;
-      }
+<body>
 
-      .social-card span {
-        color: #aaa;
-      }
+  ${navbar()}
 
-      .map-box {
-        margin-top: 28px;
-        overflow: hidden;
-        border-radius: 18px;
-        border:
-          1px solid #303030;
-        background: #111;
-      }
+  ${content}
 
-      .map-box iframe {
-        display: block;
-        width: 100%;
-        height: 390px;
-        border: 0;
-      }
+  <footer>
+    <div class="container">
+      Centro Constitución
+      <br>
+      ${escapeHtml(ADDRESS)}
+    </div>
+  </footer>
 
-      .map-footer {
-        padding: 16px;
-        display: flex;
-        align-items: center;
-        justify-content:
-          space-between;
-        gap: 14px;
-        flex-wrap: wrap;
-      }
-
-      .map-address {
-        color: #d0d0d0;
-      }
-
-      .admin-top {
-        display: flex;
-        justify-content:
-          space-between;
-        align-items: center;
-        gap: 14px;
-        flex-wrap: wrap;
-        margin-bottom: 30px;
-      }
-
-      .admin-card {
-        background: #171717;
-        border:
-          1px solid #292929;
-        border-radius: 18px;
-        padding: 20px;
-        margin-bottom: 18px;
-      }
-
-      .admin-actions {
-        margin-top: 16px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-
-      .add-box {
-        background: #121212;
-        border:
-          2px dashed #444;
-        border-radius: 18px;
-        padding: 22px;
-        margin: 22px 0 30px;
-      }
-
-      .notice {
-        padding: 14px 16px;
-        border-radius: 12px;
-        background: #1d2a20;
-        color: #b9f6ca;
-        margin-bottom: 20px;
-      }
-
-      .error {
-        padding: 14px 16px;
-        border-radius: 12px;
-        background: #351a1a;
-        color: #ffb4ab;
-        margin-bottom: 20px;
-      }
-
-      footer {
-        border-top:
-          1px solid #222;
-        padding: 34px 0;
-        color: #999;
-        text-align: center;
-      }
-
-      @media (
-        max-width: 720px
-      ) {
-        .nav-inner {
-          align-items:
-            flex-start;
-          flex-direction:
-            column;
-          padding: 14px 0;
-        }
-
-        .hero {
-          padding-top: 55px;
-        }
-
-        section {
-          padding: 55px 0;
-        }
-
-        .map-box iframe {
-          height: 300px;
-        }
-      }
-    </style>
-  </head>
-
-  <body>
-    ${content}
-  </body>
-
-  </html>
+</body>
+</html>
   `;
 }
 
 function navbar() {
   return `
-    <header class="navbar">
-
+    <nav class="navbar">
       <div
-        class="container nav-inner"
+        class="container navbar-inner"
       >
-
         <a
-          href="/"
           class="brand"
+          href="/"
         >
-          Centro
-          <span>
-            Constitución
-          </span>
+          Centro Constitución
         </a>
 
-        <nav class="nav-links">
-
+        <div class="nav-links">
           <a href="/#cursos">
             Cursos
           </a>
 
-          <a href="/#productos">
-            Productos
-          </a>
-
-          <a href="/#redes">
-            Redes
+          <a href="/#articulos">
+            Artículos
           </a>
 
           <a href="/#ubicacion">
@@ -879,116 +624,68 @@ function navbar() {
           <a href="/admin">
             Admin
           </a>
-
-        </nav>
-
+        </div>
       </div>
-
-    </header>
+    </nav>
   `;
 }
 
 function socialSection() {
-  return `
-    <section
-      id="redes"
-      class="section-muted"
-    >
+  const icons =
+    socialIcons();
 
+  return `
+    <section id="redes">
       <div class="container">
 
-        <h2>
-          Seguinos en nuestras redes
+        <h2 class="section-title">
+          Seguinos
         </h2>
-
-        <p class="section-text">
-          Mirá nuestros trabajos,
-          cursos, promociones y
-          novedades.
-        </p>
 
         <div class="social-grid">
 
           <a
-            class="social-card"
+            class="social-link"
             href="${FACEBOOK_URL}"
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener"
           >
-            <div class="social-icon">
-              📘
-            </div>
-
-            <strong>
-              Facebook
-            </strong>
-
-            <span>
-              Visitar página
-            </span>
+            ${icons.facebook}
+            Facebook
           </a>
 
           <a
-            class="social-card"
+            class="social-link"
             href="${INSTAGRAM_URL}"
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener"
           >
-            <div class="social-icon">
-              📸
-            </div>
-
-            <strong>
-              Instagram
-            </strong>
-
-            <span>
-              @cursosconstitucion
-            </span>
+            ${icons.instagram}
+            Instagram
           </a>
 
           <a
-            class="social-card"
+            class="social-link"
             href="${TIKTOK_URL}"
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener"
           >
-            <div class="social-icon">
-              🎵
-            </div>
-
-            <strong>
-              TikTok
-            </strong>
-
-            <span>
-              @centroconstitucion
-            </span>
+            ${icons.tiktok}
+            TikTok
           </a>
 
           <a
-            class="social-card"
+            class="social-link"
             href="${GOOGLE_URL}"
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener"
           >
-            <div class="social-icon">
-              ⭐
-            </div>
-
-            <strong>
-              Google
-            </strong>
-
-            <span>
-              Ver nuestras reseñas
-            </span>
+            ${icons.google}
+            Google
           </a>
 
         </div>
-
       </div>
-
     </section>
   `;
 }
@@ -1000,298 +697,438 @@ function locationSection() {
     );
 
   const mapsOpen =
-    `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
+    'https://www.google.com/maps/search/?api=1&query=' +
+    mapQuery;
 
   return `
     <section id="ubicacion">
-
       <div class="container">
 
-        <h2>
-          Ubicación
+        <h2 class="section-title">
+          ¿Dónde estamos?
         </h2>
 
-        <p class="section-text">
-          Estamos en
-          <strong>
-            ${escapeHtml(ADDRESS)}
-          </strong>.
-          Tocá el mapa o el botón
-          para abrir la ubicación.
+        <p>
+          ${escapeHtml(ADDRESS)}
         </p>
 
-        <div class="map-box">
+        <iframe
+          class="map"
+          src="https://www.google.com/maps?q=${mapQuery}&output=embed"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
 
-          <iframe
-            src="https://www.google.com/maps?q=${mapQuery}&output=embed"
-            loading="lazy"
-            title="Mapa Centro Constitución"
-            referrerpolicy="no-referrer-when-downgrade"
-          ></iframe>
+        <div
+          style="
+            display:flex;
+            gap:12px;
+            flex-wrap:wrap;
+            margin-top:18px;
+          "
+        >
+          <a
+            class="button"
+            href="${mapsOpen}"
+            target="_blank"
+            rel="noopener"
+          >
+            Abrir ubicación
+          </a>
 
-          <div class="map-footer">
-
-            <div class="map-address">
-              📍
-              ${escapeHtml(ADDRESS)}
-            </div>
-
-            <div class="actions">
-
-              <a
-                class="btn btn-primary"
-                href="${mapsOpen}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Abrir ubicación
-              </a>
-
-              <a
-                class="btn btn-dark"
-                href="${GOOGLE_URL}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                ⭐ Ver reseñas
-              </a>
-
-            </div>
-
-          </div>
-
+          <a
+            class="button button-dark"
+            href="${GOOGLE_URL}"
+            target="_blank"
+            rel="noopener"
+          >
+            Ver reseñas
+          </a>
         </div>
 
       </div>
-
     </section>
   `;
 }
-function courseCards(courses) {
-  return courses.map(course => `
-    <article class="card">
-      <div class="card-icon">
-        ${escapeHtml(course.icon)}
-      </div>
+function courseCards(
+  courses
+) {
+  return courses
+    .map(course => {
+      const imageHtml =
+        course.image
+          ? `
+            <img
+              class="card-image"
+              src="${escapeHtml(
+                course.image
+              )}"
+              alt="${escapeHtml(
+                course.name
+              )}"
+            >
+          `
+          : `
+            <div
+              class="card-placeholder"
+            >
+              ${escapeHtml(
+                course.icon || '🎓'
+              )}
+            </div>
+          `;
 
-      <h3>
-        ${escapeHtml(course.name)}
-      </h3>
+      const schedules =
+        course.schedules
+          .map(item => `
+            <li>
+              ${escapeHtml(item)}
+            </li>
+          `)
+          .join('');
 
-      <p>
-        ${escapeHtml(course.description)}
-      </p>
+      return `
+        <article class="card">
 
-      <div class="schedule">
-        ${course.schedules.map(schedule => `
-          <div>
-            🕒 ${escapeHtml(schedule)}
+          ${imageHtml}
+
+          <div class="card-body">
+
+            <h3>
+              ${escapeHtml(
+                course.name
+              )}
+            </h3>
+
+            <p>
+              ${escapeHtml(
+                course.description
+              )}
+            </p>
+
+            <ul>
+              ${schedules}
+            </ul>
+
+            <div class="price">
+              Matrícula:
+              ${money(
+                course.registration
+              )}
+            </div>
+
+            <div>
+              Cuota:
+              ${money(
+                course.monthlyFee
+              )}
+            </div>
+
+            <div
+              style="
+                margin-top:18px;
+              "
+            >
+              <a
+                class="button"
+                href="/curso/${encodeURIComponent(
+                  course.id
+                )}"
+              >
+                Ver curso
+              </a>
+            </div>
+
           </div>
-        `).join('')}
-      </div>
-
-      <div class="price">
-        Inscripción:
-        ${money(course.registration)}
-      </div>
-
-      <div class="price">
-        Cuota:
-        ${money(course.monthlyFee)}
-      </div>
-
-      <div class="actions">
-        <a
-          class="btn btn-primary"
-          href="/curso/${encodeURIComponent(course.id)}"
-        >
-          Ver curso
-        </a>
-      </div>
-    </article>
-  `).join('');
+        </article>
+      `;
+    })
+    .join('');
 }
 
-function productCards(products) {
-  return products.map(product => `
-    <article class="card">
-      <div class="card-icon">
-        ${escapeHtml(product.icon)}
-      </div>
+function productCards(
+  products
+) {
+  return products
+    .map(product => {
+      const imageHtml =
+        product.image
+          ? `
+            <img
+              class="card-image"
+              src="${escapeHtml(
+                product.image
+              )}"
+              alt="${escapeHtml(
+                product.name
+              )}"
+            >
+          `
+          : `
+            <div
+              class="card-placeholder"
+            >
+              ${escapeHtml(
+                product.icon || '🛍️'
+              )}
+            </div>
+          `;
 
-      <h3>
-        ${escapeHtml(product.name)}
-      </h3>
+      const productData =
+        JSON.stringify({
+          id: product.id,
+          name: product.name,
+          price: product.price
+        });
 
-      <p>
-        Stock:
-        ${Number(product.stock || 0)}
-      </p>
+      return `
+        <article class="card">
 
-      <div class="price">
-        ${money(product.price)}
-      </div>
+          ${imageHtml}
 
-      <div class="actions">
-        <button
-          type="button"
-          class="btn btn-primary"
-          onclick='addToCart(${JSON.stringify({
-            id: product.id,
-            name: product.name,
-            price: Number(product.price || 0)
-          })})'
-        >
-          Agregar al carrito
-        </button>
-      </div>
-    </article>
-  `).join('');
+          <div class="card-body">
+
+            <h3>
+              ${escapeHtml(
+                product.name
+              )}
+            </h3>
+
+            <div class="price">
+              ${money(
+                product.price
+              )}
+            </div>
+
+            <p>
+              Stock:
+              ${Number(
+                product.stock
+              )}
+            </p>
+
+            <button
+              class="button button-full"
+              type="button"
+              data-product="${escapeHtml(
+                productData
+              )}"
+              onclick="addProductFromButton(this)"
+            >
+              Agregar al carrito
+            </button>
+
+          </div>
+        </article>
+      `;
+    })
+    .join('');
 }
 
-function courseDetailPage(course) {
-  return layout(
-    `${course.name} - Centro Constitución`,
-    `
-      ${navbar()}
+function courseDetailPage(
+  course
+) {
+  const imageHtml =
+    course.image
+      ? `
+        <img
+          class="course-detail-image"
+          src="${escapeHtml(
+            course.image
+          )}"
+          alt="${escapeHtml(
+            course.name
+          )}"
+        >
+      `
+      : `
+        <div
+          class="card-placeholder"
+          style="
+            border-radius:24px;
+            margin-bottom:24px;
+          "
+        >
+          ${escapeHtml(
+            course.icon || '🎓'
+          )}
+        </div>
+      `;
+
+  const scheduleOptions =
+    course.schedules
+      .map(item => `
+        <option
+          value="${escapeHtml(item)}"
+        >
+          ${escapeHtml(item)}
+        </option>
+      `)
+      .join('');
+
+  return `
+    <main>
 
       <section>
         <div class="container">
 
-          <div class="card-icon">
-            ${escapeHtml(course.icon)}
-          </div>
+          ${imageHtml}
 
-          <h1 style="font-size:3rem;">
-            ${escapeHtml(course.name)}
+          <h1 class="section-title">
+            ${escapeHtml(
+              course.name
+            )}
           </h1>
 
-          <p class="section-text">
-            ${escapeHtml(course.description)}
+          <p
+            style="
+              font-size:18px;
+              line-height:1.6;
+              color:#ddd;
+            "
+          >
+            ${escapeHtml(
+              course.description
+            )}
           </p>
 
-          <div class="schedule">
-            ${course.schedules.map(schedule => `
-              <div>
-                🕒 ${escapeHtml(schedule)}
-              </div>
-            `).join('')}
-          </div>
+          <p>
+            <strong>
+              Matrícula:
+            </strong>
 
-          <div class="price">
-            Inscripción:
-            ${money(course.registration)}
-          </div>
+            ${money(
+              course.registration
+            )}
+          </p>
 
-          <div class="price">
-            Cuota:
-            ${money(course.monthlyFee)}
-          </div>
+          <p>
+            <strong>
+              Cuota mensual:
+            </strong>
 
-          <div class="form-card">
+            ${money(
+              course.monthlyFee
+            )}
+          </p>
+
+        </div>
+      </section>
+
+      <section>
+        <div class="container">
+
+          <div class="form-box">
 
             <h2>
-              Inscribite a este curso
+              Inscribirme
             </h2>
 
             <form
               method="POST"
-              action="/inscription"
+              action="/inscription/start"
             >
 
               <input
                 type="hidden"
-                name="course"
-                value="${escapeHtml(course.id)}"
-              />
+                name="courseId"
+                value="${escapeHtml(
+                  course.id
+                )}"
+              >
 
-              <div class="form-grid">
+              <label>
+                Nombre
+              </label>
 
-                <div>
-                  <label>
-                    Nombre y apellido
-                  </label>
+              <input
+                type="text"
+                name="firstName"
+                required
+              >
 
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                  />
-                </div>
+              <label>
+                Apellido
+              </label>
 
-                <div>
-                  <label>
-                    DNI
-                  </label>
+              <input
+                type="text"
+                name="lastName"
+                required
+              >
 
-                  <input
-                    type="text"
-                    name="dni"
-                    required
-                  />
-                </div>
+              <label>
+                Número de documento
+              </label>
 
-                <div>
-                  <label>
-                    WhatsApp
-                  </label>
+              <input
+                type="text"
+                name="document"
+                inputmode="numeric"
+                required
+              >
 
-                  <input
-                    type="tel"
-                    name="whatsapp"
-                    required
-                  />
-                </div>
+              <label>
+                Fecha de nacimiento
+              </label>
 
-                <div>
-                  <label>
-                    Email
-                  </label>
+              <input
+                type="date"
+                name="birthDate"
+                required
+              >
 
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                  />
-                </div>
+              <label>
+                Número de WhatsApp
+              </label>
 
-                <div class="full">
-                  <label>
-                    Horario
-                  </label>
+              <input
+                type="tel"
+                name="whatsapp"
+                required
+              >
 
-                  <select
-                    name="schedule"
-                    required
-                  >
-                    ${course.schedules.map(schedule => `
-                      <option
-                        value="${escapeHtml(schedule)}"
-                      >
-                        ${escapeHtml(schedule)}
-                      </option>
-                    `).join('')}
-                  </select>
-                </div>
+              <label>
+                Curso
+              </label>
 
-                <div class="full">
-                  <button
-                    type="submit"
-                    class="btn btn-primary"
-                  >
-                    Inscribirme y pagar
-                  </button>
-                </div>
+              <input
+                type="text"
+                value="${escapeHtml(
+                  course.name
+                )}"
+                readonly
+              >
 
-              </div>
+              <label>
+                Horario
+              </label>
+
+              <select
+                name="schedule"
+                required
+              >
+                ${scheduleOptions}
+              </select>
+
+              <button
+                class="button button-full"
+                type="submit"
+                style="
+                  margin-top:22px;
+                "
+              >
+                Inscribirme y pagar
+              </button>
+
             </form>
 
           </div>
-
         </div>
       </section>
-    `
-  );
+
+    </main>
+  `;
 }
 
 function cartSection() {
@@ -1299,16 +1136,11 @@ function cartSection() {
     <section id="carrito">
       <div class="container">
 
-        <h2>
+        <h2 class="section-title">
           Carrito
         </h2>
 
-        <p class="section-text">
-          Agregá los productos que quieras
-          y después pagá con Mercado Pago.
-        </p>
-
-        <div class="form-card">
+        <div class="form-box">
 
           <div id="cart-items">
             Tu carrito está vacío.
@@ -1317,110 +1149,120 @@ function cartSection() {
           <div
             id="cart-total"
             class="price"
-            style="margin-top:20px;"
+            style="
+              margin-top:20px;
+            "
           >
             Total: $0
           </div>
 
-          <div
-            class="form-grid"
-            style="margin-top:20px;"
+          <label>
+            Nombre
+          </label>
+
+          <input
+            id="buyer-name"
+            type="text"
           >
 
-            <div>
-              <label>
-                Nombre
-              </label>
+          <label>
+            WhatsApp
+          </label>
 
-              <input
-                id="buyer-name"
-                type="text"
-              />
-            </div>
+          <input
+            id="buyer-whatsapp"
+            type="tel"
+          >
 
-            <div>
-              <label>
-                WhatsApp
-              </label>
-
-              <input
-                id="buyer-whatsapp"
-                type="tel"
-              />
-            </div>
-
-            <div>
-              <label>
-                Email
-              </label>
-
-              <input
-                id="buyer-email"
-                type="email"
-              />
-            </div>
-
-            <div class="full">
-              <button
-                type="button"
-                class="btn btn-primary"
-                onclick="checkoutCart()"
-              >
-                Comprar con Mercado Pago
-              </button>
-            </div>
-
-          </div>
+          <button
+            class="button button-full"
+            type="button"
+            onclick="checkoutCart()"
+            style="
+              margin-top:20px;
+            "
+          >
+            Comprar y pagar
+          </button>
 
         </div>
-
       </div>
 
       <script>
-        let cart = [];
+        var cart = [];
 
-        function addToCart(product) {
-          const existing =
-            cart.find(
-              item =>
-                item.id === product.id
+        function addProductFromButton(
+          button
+        ) {
+          try {
+            var product =
+              JSON.parse(
+                button.dataset.product
+              );
+
+            addToCart(product);
+          } catch {
+            alert(
+              'No se pudo agregar el artículo.'
             );
+          }
+        }
+
+        function addToCart(
+          product
+        ) {
+          var existing =
+            cart.find(function(item) {
+              return (
+                item.id ===
+                product.id
+              );
+            });
 
           if (existing) {
             existing.quantity += 1;
           } else {
             cart.push({
-              ...product,
+              id:
+                product.id,
+
+              name:
+                product.name,
+
+              price:
+                Number(
+                  product.price
+                ),
+
               quantity: 1
             });
           }
 
           renderCart();
-
-          document
-            .getElementById('carrito')
-            .scrollIntoView({
-              behavior: 'smooth'
-            });
         }
 
-        function removeFromCart(id) {
+        function removeFromCart(
+          id
+        ) {
           cart =
             cart.filter(
-              item =>
-                item.id !== id
+              function(item) {
+                return (
+                  item.id !== id
+                );
+              }
             );
 
           renderCart();
         }
 
         function renderCart() {
-          const box =
+          var box =
             document.getElementById(
               'cart-items'
             );
 
-          const totalBox =
+          var totalBox =
             document.getElementById(
               'cart-total'
             );
@@ -1435,254 +1277,248 @@ function cartSection() {
             return;
           }
 
-      box.innerHTML =
-        cart.map(function(item) {
-          const subtotal =
-            item.price *
-            item.quantity;
+          box.innerHTML =
+            cart.map(
+              function(item) {
+                var subtotal =
+                  item.price *
+                  item.quantity;
 
-          return (
-            '<div style="' +
-            'display:flex;' +
-            'justify-content:space-between;' +
-            'align-items:center;' +
-            'gap:12px;' +
-            'padding:12px 0;' +
-            'border-bottom:1px solid #2d2d2d;' +
-            '">' +
+                return (
+                  '<div style="' +
+                  'display:flex;' +
+                  'justify-content:space-between;' +
+                  'align-items:center;' +
+                  'gap:12px;' +
+                  'padding:12px 0;' +
+                  'border-bottom:1px solid #333;' +
+                  '">' +
 
-            '<div>' +
+                  '<div>' +
 
-            '<strong>' +
-            item.name +
-            '</strong>' +
+                  '<strong>' +
+                  item.name +
+                  '</strong>' +
 
-            '<div style="color:#aaa;">' +
-            'Cantidad: ' +
-            item.quantity +
-            '</div>' +
+                  '<div style="color:#aaa;">' +
+                  'Cantidad: ' +
+                  item.quantity +
+                  '</div>' +
 
-            '</div>' +
+                  '</div>' +
 
-            '<div>' +
+                  '<div>' +
 
-            '<strong>$' +
-            subtotal.toLocaleString('es-AR') +
-            '</strong>' +
+                  '<strong>$' +
+                  subtotal.toLocaleString(
+                    'es-AR'
+                  ) +
+                  '</strong>' +
 
-            '<button type="button" ' +
-            'onclick="removeFromCart(\\'' +
-            item.id +
-            '\\')" ' +
-            'style="' +
-            'display:block;' +
-            'margin-top:6px;' +
-            'background:none;' +
-            'border:0;' +
-            'color:#ff8a80;' +
-            'cursor:pointer;' +
-            '">' +
-            'Quitar' +
-            '</button>' +
+                  '<button ' +
+                  'type="button" ' +
+                  'class="remove-cart-item" ' +
+                  'data-id="' +
+                  item.id +
+                  '" ' +
+                  'style="' +
+                  'display:block;' +
+                  'margin-top:6px;' +
+                  'background:none;' +
+                  'border:0;' +
+                  'color:#ff8a80;' +
+                  'cursor:pointer;' +
+                  '">' +
+                  'Quitar' +
+                  '</button>' +
 
-            '</div>' +
+                  '</div>' +
 
-            '</div>'
-          );
-        }).join('');
+                  '</div>'
+                );
+              }
+            ).join('');
 
-      const total =
-        cart.reduce(
-          function(sum, item) {
-            return (
-              sum +
-              item.price *
-              item.quantity
+          box
+            .querySelectorAll(
+              '.remove-cart-item'
+            )
+            .forEach(
+              function(button) {
+                button.addEventListener(
+                  'click',
+                  function() {
+                    removeFromCart(
+                      button.dataset.id
+                    );
+                  }
+                );
+              }
             );
-          },
-          0
-        );
 
-      totalBox.textContent =
-        'Total: $' +
-        total.toLocaleString(
-          'es-AR'
-        );
-    }
+          var total =
+            cart.reduce(
+              function(sum, item) {
+                return (
+                  sum +
+                  item.price *
+                  item.quantity
+                );
+              },
+              0
+            );
 
-    async function checkoutCart() {
-      if (!cart.length) {
-        alert(
-          'Agregá al menos un producto.'
-        );
+          totalBox.textContent =
+            'Total: $' +
+            total.toLocaleString(
+              'es-AR'
+            );
+        }
 
-        return;
-      }
+        async function checkoutCart() {
+          if (!cart.length) {
+            alert(
+              'Agregá al menos un artículo.'
+            );
 
-      const name =
-        document
-          .getElementById(
-            'buyer-name'
-          )
-          .value
-          .trim();
-
-      const whatsapp =
-        document
-          .getElementById(
-            'buyer-whatsapp'
-          )
-          .value
-          .trim();
-
-      const email =
-        document
-          .getElementById(
-            'buyer-email'
-          )
-          .value
-          .trim();
-
-      if (!name || !whatsapp) {
-        alert(
-          'Completá tu nombre y WhatsApp.'
-        );
-
-        return;
-      }
-
-      const response =
-        await fetch(
-          '/checkout/products',
-          {
-            method: 'POST',
-
-            headers: {
-              'Content-Type':
-                'application/json'
-            },
-
-            body:
-              JSON.stringify({
-                name,
-                whatsapp,
-                email,
-                items: cart
-              })
+            return;
           }
-        );
 
-      const data =
-        await response.json();
+          var name =
+            document
+              .getElementById(
+                'buyer-name'
+              )
+              .value
+              .trim();
 
-      if (!response.ok) {
-        alert(
-          data.error ||
-          'No se pudo iniciar el pago.'
-        );
+          var whatsapp =
+            document
+              .getElementById(
+                'buyer-whatsapp'
+              )
+              .value
+              .trim();
 
-        return;
-      }
+          if (
+            !name ||
+            !whatsapp
+          ) {
+            alert(
+              'Completá tu nombre y WhatsApp.'
+            );
 
-      if (data.url) {
-        window.location.href =
-          data.url;
-      }
-    }
-  </script>
-</section>
-`;
+            return;
+          }
+
+          var response =
+            await fetch(
+              '/checkout/products',
+              {
+                method: 'POST',
+
+                headers: {
+                  'Content-Type':
+                    'application/json'
+                },
+
+                body:
+                  JSON.stringify({
+                    name:
+                      name,
+
+                    whatsapp:
+                      whatsapp,
+
+                    items:
+                      cart
+                  })
+              }
+            );
+
+          var data =
+            await response.json();
+
+          if (!response.ok) {
+            alert(
+              data.error ||
+              'No se pudo iniciar el pago.'
+            );
+
+            return;
+          }
+
+          if (data.url) {
+            window.location.href =
+              data.url;
+          }
+        }
+      </script>
+    </section>
+  `;
 }
 
 function homePage(
   courses,
-  products
+  products,
+  settings
 ) {
   return layout(
     'Centro Constitución',
     `
-      ${navbar()}
-
       <main>
 
         <section class="hero">
           <div class="container">
-            <div class="hero-content">
 
-              <span class="eyebrow">
-                Cursos de oficios
-              </span>
+            <h1>
+              Centro Constitución
+            </h1>
 
-              <h1>
-                Centro Constitución
-              </h1>
+            <p>
+              Cursos presenciales,
+              capacitación profesional
+              y artículos para peluquería
+              y barbería.
+            </p>
 
-              <p>
-                Cursos presenciales,
-                capacitación y herramientas
-                para aprender un oficio.
-              </p>
+            <a
+              class="button"
+              href="#cursos"
+            >
+              Ver cursos
+            </a>
 
-              <div class="actions">
-
-                <a
-                  class="btn btn-primary"
-                  href="#cursos"
-                >
-                  Ver cursos
-                </a>
-
-                <a
-                  class="btn btn-dark"
-                  href="#ubicacion"
-                >
-                  Ver ubicación
-                </a>
-
-              </div>
-
-            </div>
           </div>
         </section>
 
         <section id="cursos">
           <div class="container">
 
-            <h2>
-              Nuestros cursos
+            <h2 class="section-title">
+              Cursos
             </h2>
 
-            <p class="section-text">
-              Tocá en Ver curso para
-              conocer los horarios e
-              inscribirte.
-            </p>
-
             <div class="grid">
-              ${courseCards(courses)}
+              ${courseCards(
+                courses
+              )}
             </div>
 
           </div>
         </section>
 
-        <section
-          id="productos"
-          class="section-muted"
-        >
+        <section id="articulos">
           <div class="container">
 
-            <h2>
-              Productos y herramientas
+            <h2 class="section-title">
+              Artículos
             </h2>
 
-            <p class="section-text">
-              Comprá herramientas
-              profesionales desde
-              nuestra página.
-            </p>
-
             <div class="grid">
-              ${productCards(products)}
+              ${productCards(
+                products
+              )}
             </div>
 
           </div>
@@ -1695,30 +1531,33 @@ function homePage(
         ${locationSection()}
 
       </main>
-
-      <footer>
-        <div class="container">
-          © ${new Date().getFullYear()}
-          Centro Constitución
-        </div>
-      </footer>
-    `
+    `,
+    settings
   );
 }
 
 app.get(
   '/',
-  async (req, res) => {
-    const courses =
-      await getCourses();
-
-    const products =
-      await getProducts();
+  async (
+    req,
+    res
+  ) => {
+    const [
+      courses,
+      products,
+      settings
+    ] =
+      await Promise.all([
+        getCourses(),
+        getProducts(),
+        getSiteSettings()
+      ]);
 
     res.send(
       homePage(
         courses,
-        products
+        products,
+        settings
       )
     );
   }
@@ -1726,501 +1565,618 @@ app.get(
 
 app.get(
   '/curso/:id',
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     const courses =
       await getCourses();
 
     const course =
       courses.find(
         item =>
-          item.id === req.params.id
+          String(item.id) ===
+          String(req.params.id)
       );
 
     if (!course) {
-      return res.status(404).send(
+      return res
+        .status(404)
+        .send(
+          layout(
+            'Curso no encontrado',
+            `
+              <main>
+                <section>
+                  <div class="container">
+
+                    <h1>
+                      Curso no encontrado
+                    </h1>
+
+                    <a
+                      class="button"
+                      href="/"
+                    >
+                      Volver
+                    </a>
+
+                  </div>
+                </section>
+              </main>
+            `
+          )
+        );
+    }
+
+    const settings =
+      await getSiteSettings();
+
+    res.send(
+      layout(
+        course.name,
+        courseDetailPage(
+          course
+        ),
+        settings
+      )
+    );
+  }
+);
+function createWhatsAppUrl(
+  inscription
+) {
+  const message =
+    [
+      'Hola, quiero confirmar mi inscripción en Centro Constitución.',
+      '',
+      'Nombre: ' +
+        inscription.firstName,
+      'Apellido: ' +
+        inscription.lastName,
+      'Documento: ' +
+        inscription.document,
+      'Fecha de nacimiento: ' +
+        inscription.birthDate,
+      'WhatsApp: ' +
+        inscription.whatsapp,
+      'Curso: ' +
+        inscription.courseName,
+      'Horario: ' +
+        inscription.schedule
+    ].join('\n');
+
+  return (
+    'https://wa.me/' +
+    BUSINESS_WHATSAPP +
+    '?text=' +
+    encodeURIComponent(
+      message
+    )
+  );
+}
+
+async function createMercadoPagoPreference(
+  data
+) {
+  if (!MP_ACCESS_TOKEN) {
+    return null;
+  }
+
+  try {
+    const response =
+      await fetch(
+        'https://api.mercadopago.com/checkout/preferences',
+        {
+          method: 'POST',
+
+          headers: {
+            Authorization:
+              `Bearer ${MP_ACCESS_TOKEN}`,
+
+            'Content-Type':
+              'application/json'
+          },
+
+          body:
+            JSON.stringify(data)
+        }
+      );
+
+    if (!response.ok) {
+      const error =
+        await response.text();
+
+      console.error(
+        'Mercado Pago:',
+        response.status,
+        error
+      );
+
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(
+      'Mercado Pago error:',
+      error
+    );
+
+    return null;
+  }
+}
+
+app.post(
+  '/inscription/start',
+  async (
+    req,
+    res
+  ) => {
+    const {
+      firstName,
+      lastName,
+      document,
+      birthDate,
+      whatsapp,
+      courseId,
+      schedule
+    } = req.body;
+
+    if (
+      !firstName ||
+      !lastName ||
+      !document ||
+      !birthDate ||
+      !whatsapp ||
+      !courseId ||
+      !schedule
+    ) {
+      return res
+        .status(400)
+        .send(
+          layout(
+            'Datos incompletos',
+            `
+              <main>
+                <section>
+                  <div class="container">
+
+                    <h1>
+                      Faltan datos
+                    </h1>
+
+                    <p>
+                      Completá todos los campos.
+                    </p>
+
+                    <a
+                      class="button"
+                      href="/"
+                    >
+                      Volver
+                    </a>
+
+                  </div>
+                </section>
+              </main>
+            `
+          )
+        );
+    }
+
+    const courses =
+      await getCourses();
+
+    const course =
+      courses.find(
+        item =>
+          String(item.id) ===
+          String(courseId)
+      );
+
+    if (!course) {
+      return res
+        .status(404)
+        .send(
+          'Curso no encontrado'
+        );
+    }
+
+    const inscriptionId =
+      'ins-' +
+      Date.now() +
+      '-' +
+      Math.random()
+        .toString(36)
+        .slice(2, 8);
+
+    const inscription = {
+      id:
+        inscriptionId,
+
+      first_name:
+        String(
+          firstName
+        ).trim(),
+
+      last_name:
+        String(
+          lastName
+        ).trim(),
+
+      document:
+        String(
+          document
+        ).trim(),
+
+      birth_date:
+        String(
+          birthDate
+        ).trim(),
+
+      whatsapp:
+        String(
+          whatsapp
+        ).trim(),
+
+      course_id:
+        course.id,
+
+      course_name:
+        course.name,
+
+      schedule:
+        String(
+          schedule
+        ).trim(),
+
+      amount:
+        Number(
+          course.registration
+        ),
+
+      payment_status:
+        'pending',
+
+      created_at:
+        new Date()
+          .toISOString()
+    };
+
+    await supabaseRequest(
+      'inscriptions',
+      {
+        method: 'POST',
+
+        headers: {
+          Prefer:
+            'return=minimal'
+        },
+
+        body:
+          JSON.stringify(
+            inscription
+          )
+      }
+    );
+
+    const preference =
+      await createMercadoPagoPreference({
+        items: [
+          {
+            title:
+              'Inscripción - ' +
+              course.name,
+
+            quantity: 1,
+
+            currency_id:
+              'ARS',
+
+            unit_price:
+              Number(
+                course.registration
+              )
+          }
+        ],
+
+        external_reference:
+          inscriptionId,
+
+        back_urls: {
+          success:
+            PUBLIC_URL +
+            '/payment/success?inscription_id=' +
+            encodeURIComponent(
+              inscriptionId
+            ),
+
+          pending:
+            PUBLIC_URL +
+            '/payment/pending?inscription_id=' +
+            encodeURIComponent(
+              inscriptionId
+            ),
+
+          failure:
+            PUBLIC_URL +
+            '/payment/failure?inscription_id=' +
+            encodeURIComponent(
+              inscriptionId
+            )
+        },
+
+        auto_return:
+          'approved'
+      });
+
+    if (
+      !preference ||
+      !preference.init_point
+    ) {
+      return res
+        .status(500)
+        .send(
+          layout(
+            'Error de pago',
+            `
+              <main>
+                <section>
+                  <div class="container">
+
+                    <h1>
+                      No se pudo iniciar el pago
+                    </h1>
+
+                    <p>
+                      Revisá la configuración
+                      de Mercado Pago.
+                    </p>
+
+                    <a
+                      class="button"
+                      href="/curso/${encodeURIComponent(
+                        course.id
+                      )}"
+                    >
+                      Volver al curso
+                    </a>
+
+                  </div>
+                </section>
+              </main>
+            `
+          )
+        );
+    }
+
+    return res.redirect(
+      preference.init_point
+    );
+  }
+);
+
+async function getInscriptionById(
+  id
+) {
+  const data =
+    await supabaseRequest(
+      'inscriptions?id=eq.' +
+      encodeURIComponent(
+        id
+      ) +
+      '&select=*'
+    );
+
+  if (
+    Array.isArray(data) &&
+    data[0]
+  ) {
+    return data[0];
+  }
+
+  return null;
+}
+
+async function updateInscriptionStatus(
+  id,
+  status
+) {
+  return supabaseRequest(
+    'inscriptions?id=eq.' +
+    encodeURIComponent(
+      id
+    ),
+    {
+      method: 'PATCH',
+
+      headers: {
+        Prefer:
+          'return=minimal'
+      },
+
+      body:
+        JSON.stringify({
+          payment_status:
+            status
+        })
+    }
+  );
+}
+
+app.get(
+  '/payment/success',
+  async (
+    req,
+    res
+  ) => {
+    const inscriptionId =
+      String(
+        req.query.inscription_id ||
+        ''
+      );
+
+    if (!inscriptionId) {
+      return res.redirect('/');
+    }
+
+    await updateInscriptionStatus(
+      inscriptionId,
+      'paid'
+    );
+
+    const inscription =
+      await getInscriptionById(
+        inscriptionId
+      );
+
+    if (!inscription) {
+      return res.send(
         layout(
-          'Curso no encontrado',
+          'Pago realizado',
           `
-            ${navbar()}
+            <main>
+              <section>
+                <div class="container">
 
-            <section>
-              <div class="container">
+                  <h1>
+                    Pago realizado
+                  </h1>
 
-                <div class="error">
-                  Curso no encontrado.
+                  <p>
+                    Tu pago fue recibido.
+                  </p>
+
+                  <a
+                    class="button"
+                    href="/"
+                  >
+                    Volver al inicio
+                  </a>
+
                 </div>
-
-                <a
-                  class="btn btn-primary"
-                  href="/"
-                >
-                  Volver
-                </a>
-
-              </div>
-            </section>
+              </section>
+            </main>
           `
         )
       );
     }
 
-    res.send(
-      courseDetailPage(course)
-    );
-  }
-);
-app.post(
-  '/inscription',
-  async (req, res) => {
-    try {
-      const {
-        name,
-        dni,
-        whatsapp,
-        email,
-        course,
-        schedule
-      } = req.body;
+    const whatsappUrl =
+      createWhatsAppUrl({
+        firstName:
+          inscription.first_name,
 
-      const courses =
-        await getCourses();
+        lastName:
+          inscription.last_name,
 
-      const selectedCourse =
-        courses.find(
-          item =>
-            item.id === course
-        );
+        document:
+          inscription.document,
 
-      if (!selectedCourse) {
-        return res
-          .status(400)
-          .send(
-            layout(
-              'Error',
-              `
-                ${navbar()}
+        birthDate:
+          inscription.birth_date,
 
-                <section>
-                  <div class="container">
+        whatsapp:
+          inscription.whatsapp,
 
-                    <div class="error">
-                      El curso seleccionado
-                      no existe.
-                    </div>
+        courseName:
+          inscription.course_name,
 
-                    <a
-                      class="btn btn-primary"
-                      href="/"
-                    >
-                      Volver
-                    </a>
-
-                  </div>
-                </section>
-              `
-            )
-          );
-      }
-
-      if (!MP_ACCESS_TOKEN) {
-        return res
-          .status(500)
-          .send(
-            layout(
-              'Mercado Pago',
-              `
-                ${navbar()}
-
-                <section>
-                  <div class="container">
-
-                    <div class="error">
-                      Falta configurar
-                      Mercado Pago.
-                    </div>
-
-                    <a
-                      class="btn btn-primary"
-                      href="/"
-                    >
-                      Volver
-                    </a>
-
-                  </div>
-                </section>
-              `
-            )
-          );
-      }
-
-      await supabaseRequest(
-        'inscriptions',
-        {
-          method: 'POST',
-
-          body: JSON.stringify([
-            {
-              name,
-              dni,
-              whatsapp,
-              email,
-
-              course_id:
-                selectedCourse.id,
-
-              course_name:
-                selectedCourse.name,
-
-              schedule,
-
-              amount:
-                selectedCourse.registration,
-
-              status:
-                'pending'
-            }
-          ])
-        }
-      );
-
-      const mpResponse =
-        await fetch(
-          'https://api.mercadopago.com/checkout/preferences',
-          {
-            method: 'POST',
-
-            headers: {
-              Authorization:
-                `Bearer ${MP_ACCESS_TOKEN}`,
-
-              'Content-Type':
-                'application/json'
-            },
-
-            body: JSON.stringify({
-              items: [
-                {
-                  title:
-                    `Inscripción ${selectedCourse.name}`,
-
-                  quantity: 1,
-
-                  currency_id:
-                    'ARS',
-
-                  unit_price:
-                    Number(
-                      selectedCourse.registration
-                    )
-                }
-              ],
-
-              payer: {
-                name,
-                email
-              },
-
-              external_reference:
-                `inscription-${Date.now()}`,
-
-              back_urls: {
-                success:
-                  `${PUBLIC_URL}/payment/success`,
-
-                pending:
-                  `${PUBLIC_URL}/payment/pending`,
-
-                failure:
-                  `${PUBLIC_URL}/payment/failure`
-              },
-
-              auto_return:
-                'approved'
-            })
-          }
-        );
-
-      const preference =
-        await mpResponse.json();
-
-      if (
-        !mpResponse.ok ||
-        !preference.init_point
-      ) {
-        console.error(
-          preference
-        );
-
-        return res
-          .status(500)
-          .send(
-            layout(
-              'Error de pago',
-              `
-                ${navbar()}
-
-                <section>
-                  <div class="container">
-
-                    <div class="error">
-                      No se pudo iniciar
-                      el pago.
-                    </div>
-
-                    <a
-                      class="btn btn-primary"
-                      href="/"
-                    >
-                      Volver
-                    </a>
-
-                  </div>
-                </section>
-              `
-            )
-          );
-      }
-
-      return res.redirect(
-        preference.init_point
-      );
-    } catch (error) {
-      console.error(error);
-
-      return res
-        .status(500)
-        .send(
-          'Error interno.'
-        );
-    }
-  }
-);
-
-app.post(
-  '/checkout/products',
-  async (req, res) => {
-    try {
-      const {
-        name,
-        whatsapp,
-        email,
-        items
-      } = req.body;
-
-      if (
-        !Array.isArray(items) ||
-        !items.length
-      ) {
-        return res
-          .status(400)
-          .json({
-            error:
-              'El carrito está vacío.'
-          });
-      }
-
-      if (!MP_ACCESS_TOKEN) {
-        return res
-          .status(500)
-          .json({
-            error:
-              'Mercado Pago no está configurado.'
-          });
-      }
-
-      const products =
-        await getProducts();
-
-      const mpItems = [];
-
-      for (const item of items) {
-        const product =
-          products.find(
-            product =>
-              product.id === item.id
-          );
-
-        if (!product) {
-          continue;
-        }
-
-        const quantity =
-          Math.max(
-            1,
-            Number(
-              item.quantity || 1
-            )
-          );
-
-        mpItems.push({
-          title:
-            product.name,
-
-          quantity,
-
-          currency_id:
-            'ARS',
-
-          unit_price:
-            Number(
-              product.price
-            )
-        });
-      }
-
-      if (!mpItems.length) {
-        return res
-          .status(400)
-          .json({
-            error:
-              'No hay productos válidos.'
-          });
-      }
-
-      await supabaseRequest(
-        'orders',
-        {
-          method: 'POST',
-
-          body: JSON.stringify([
-            {
-              name,
-              whatsapp,
-              email,
-              items,
-              status:
-                'pending'
-            }
-          ])
-        }
-      );
-
-      const mpResponse =
-        await fetch(
-          'https://api.mercadopago.com/checkout/preferences',
-          {
-            method: 'POST',
-
-            headers: {
-              Authorization:
-                `Bearer ${MP_ACCESS_TOKEN}`,
-
-              'Content-Type':
-                'application/json'
-            },
-
-            body: JSON.stringify({
-              items:
-                mpItems,
-
-              payer: {
-                name,
-                email
-              },
-
-              external_reference:
-                `products-${Date.now()}`,
-
-              back_urls: {
-                success:
-                  `${PUBLIC_URL}/payment/success`,
-
-                pending:
-                  `${PUBLIC_URL}/payment/pending`,
-
-                failure:
-                  `${PUBLIC_URL}/payment/failure`
-              },
-
-              auto_return:
-                'approved'
-            })
-          }
-        );
-
-      const preference =
-        await mpResponse.json();
-
-      if (
-        !mpResponse.ok ||
-        !preference.init_point
-      ) {
-        console.error(
-          preference
-        );
-
-        return res
-          .status(500)
-          .json({
-            error:
-              'No se pudo iniciar el pago.'
-          });
-      }
-
-      return res.json({
-        url:
-          preference.init_point
+        schedule:
+          inscription.schedule
       });
-    } catch (error) {
-      console.error(error);
 
-      return res
-        .status(500)
-        .json({
-          error:
-            'Error interno.'
-        });
-    }
-  }
-);
-
-app.get(
-  '/payment/success',
-  (req, res) => {
-    res.send(
+    return res.send(
       layout(
-        'Pago aprobado',
+        'Inscripción pagada',
         `
-          ${navbar()}
+          <main>
 
-          <section>
-            <div class="container">
+            <section>
+              <div class="container">
 
-              <div class="notice">
-                ✅ Pago aprobado.
+                <div class="form-box">
+
+                  <h1>
+                    Inscripción pagada
+                  </h1>
+
+                  <p class="status-paid">
+                    Pago aprobado.
+                  </p>
+
+                  <p>
+                    Ahora enviá tus datos
+                    por WhatsApp para
+                    terminar de confirmar
+                    la inscripción.
+                  </p>
+
+                  <p>
+                    <strong>Nombre:</strong>
+                    ${escapeHtml(
+                      inscription.first_name
+                    )}
+                    ${escapeHtml(
+                      inscription.last_name
+                    )}
+                  </p>
+
+                  <p>
+                    <strong>Documento:</strong>
+                    ${escapeHtml(
+                      inscription.document
+                    )}
+                  </p>
+
+                  <p>
+                    <strong>Fecha de nacimiento:</strong>
+                    ${escapeHtml(
+                      inscription.birth_date
+                    )}
+                  </p>
+
+                  <p>
+                    <strong>WhatsApp:</strong>
+                    ${escapeHtml(
+                      inscription.whatsapp
+                    )}
+                  </p>
+
+                  <p>
+                    <strong>Curso:</strong>
+                    ${escapeHtml(
+                      inscription.course_name
+                    )}
+                  </p>
+
+                  <p>
+                    <strong>Horario:</strong>
+                    ${escapeHtml(
+                      inscription.schedule
+                    )}
+                  </p>
+
+                  <a
+                    class="button button-full"
+                    href="${escapeHtml(
+                      whatsappUrl
+                    )}"
+                    target="_blank"
+                    rel="noopener"
+                    style="
+                      margin-top:18px;
+                    "
+                  >
+                    Enviar inscripción por WhatsApp
+                  </a>
+
+                </div>
               </div>
+            </section>
 
-              <h2>
-                ¡Gracias!
-              </h2>
-
-              <p class="section-text">
-                Recibimos tu pago
-                correctamente.
-              </p>
-
-              <div class="actions">
-
-                <a
-                  class="btn btn-primary"
-                  href="/"
-                >
-                  Volver al inicio
-                </a>
-
-                <a
-                  class="btn btn-dark"
-                  href="https://wa.me/${BUSINESS_WHATSAPP}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  WhatsApp
-                </a>
-
-              </div>
-
-            </div>
-          </section>
+          </main>
         `
       )
     );
@@ -2229,29 +2185,53 @@ app.get(
 
 app.get(
   '/payment/pending',
-  (req, res) => {
+  async (
+    req,
+    res
+  ) => {
+    const inscriptionId =
+      String(
+        req.query.inscription_id ||
+        ''
+      );
+
+    if (inscriptionId) {
+      await updateInscriptionStatus(
+        inscriptionId,
+        'pending'
+      );
+    }
+
     res.send(
       layout(
         'Pago pendiente',
         `
-          ${navbar()}
+          <main>
+            <section>
+              <div class="container">
 
-          <section>
-            <div class="container">
+                <div class="form-box">
 
-              <div class="notice">
-                ⏳ El pago está pendiente.
+                  <h1>
+                    Pago pendiente
+                  </h1>
+
+                  <p class="status-pending">
+                    Mercado Pago todavía
+                    está procesando el pago.
+                  </p>
+
+                  <a
+                    class="button"
+                    href="/"
+                  >
+                    Volver al inicio
+                  </a>
+
+                </div>
               </div>
-
-              <a
-                class="btn btn-primary"
-                href="/"
-              >
-                Volver al inicio
-              </a>
-
-            </div>
-          </section>
+            </section>
+          </main>
         `
       )
     );
@@ -2260,30 +2240,299 @@ app.get(
 
 app.get(
   '/payment/failure',
-  (req, res) => {
+  async (
+    req,
+    res
+  ) => {
+    const inscriptionId =
+      String(
+        req.query.inscription_id ||
+        ''
+      );
+
+    if (inscriptionId) {
+      await updateInscriptionStatus(
+        inscriptionId,
+        'failed'
+      );
+    }
+
     res.send(
       layout(
         'Pago rechazado',
         `
-          ${navbar()}
+          <main>
+            <section>
+              <div class="container">
 
-          <section>
-            <div class="container">
+                <div class="form-box">
 
-              <div class="error">
-                ❌ El pago no pudo
-                completarse.
+                  <h1>
+                    No se pudo realizar el pago
+                  </h1>
+
+                  <p>
+                    Podés volver al curso
+                    e intentarlo nuevamente.
+                  </p>
+
+                  <a
+                    class="button"
+                    href="/"
+                  >
+                    Volver al inicio
+                  </a>
+
+                </div>
               </div>
+            </section>
+          </main>
+        `
+      )
+    );
+  }
+);
 
-              <a
-                class="btn btn-primary"
-                href="/"
-              >
-                Volver
-              </a>
+app.post(
+  '/checkout/products',
+  async (
+    req,
+    res
+  ) => {
+    const {
+      name,
+      whatsapp,
+      items
+    } = req.body;
 
-            </div>
-          </section>
+    if (
+      !name ||
+      !whatsapp ||
+      !Array.isArray(items) ||
+      !items.length
+    ) {
+      return res
+        .status(400)
+        .json({
+          error:
+            'Faltan datos del pedido.'
+        });
+    }
+
+    const products =
+      await getProducts();
+
+    const validatedItems = [];
+
+    for (
+      const requested
+      of items
+    ) {
+      const product =
+        products.find(
+          item =>
+            String(item.id) ===
+            String(
+              requested.id
+            )
+        );
+
+      if (!product) {
+        continue;
+      }
+
+      const quantity =
+        Math.max(
+          1,
+          Number(
+            requested.quantity ||
+            1
+          )
+        );
+
+      validatedItems.push({
+        id:
+          product.id,
+
+        name:
+          product.name,
+
+        price:
+          Number(
+            product.price
+          ),
+
+        quantity:
+          quantity
+      });
+    }
+
+    if (
+      !validatedItems.length
+    ) {
+      return res
+        .status(400)
+        .json({
+          error:
+            'No hay artículos válidos.'
+        });
+    }
+
+    const total =
+      validatedItems.reduce(
+        (
+          sum,
+          item
+        ) =>
+          sum +
+          item.price *
+          item.quantity,
+        0
+      );
+
+    const orderId =
+      'order-' +
+      Date.now() +
+      '-' +
+      Math.random()
+        .toString(36)
+        .slice(2, 8);
+
+    await supabaseRequest(
+      'orders',
+      {
+        method: 'POST',
+
+        headers: {
+          Prefer:
+            'return=minimal'
+        },
+
+        body:
+          JSON.stringify({
+            id:
+              orderId,
+
+            buyer_name:
+              String(
+                name
+              ).trim(),
+
+            buyer_whatsapp:
+              String(
+                whatsapp
+              ).trim(),
+
+            items:
+              validatedItems,
+
+            total:
+              total,
+
+            payment_status:
+              'pending',
+
+            created_at:
+              new Date()
+                .toISOString()
+          })
+      }
+    );
+
+    const preference =
+      await createMercadoPagoPreference({
+        items:
+          validatedItems.map(
+            item => ({
+              title:
+                item.name,
+
+              quantity:
+                item.quantity,
+
+              currency_id:
+                'ARS',
+
+              unit_price:
+                item.price
+            })
+          ),
+
+        external_reference:
+          orderId,
+
+        back_urls: {
+          success:
+            PUBLIC_URL +
+            '/order/success',
+
+          pending:
+            PUBLIC_URL +
+            '/order/pending',
+
+          failure:
+            PUBLIC_URL +
+            '/order/failure'
+        },
+
+        auto_return:
+          'approved'
+      });
+
+    if (
+      !preference ||
+      !preference.init_point
+    ) {
+      return res
+        .status(500)
+        .json({
+          error:
+            'No se pudo iniciar el pago.'
+        });
+    }
+
+    return res.json({
+      url:
+        preference.init_point
+    });
+  }
+);
+
+app.get(
+  '/order/success',
+  (
+    req,
+    res
+  ) => {
+    res.send(
+      layout(
+        'Compra realizada',
+        `
+          <main>
+            <section>
+              <div class="container">
+
+                <div class="form-box">
+
+                  <h1>
+                    Compra realizada
+                  </h1>
+
+                  <p class="status-paid">
+                    El pago fue aprobado.
+                  </p>
+
+                  <a
+                    class="button"
+                    href="/"
+                  >
+                    Volver al inicio
+                  </a>
+
+                </div>
+              </div>
+            </section>
+          </main>
         `
       )
     );
@@ -2291,32 +2540,97 @@ app.get(
 );
 
 app.get(
-  '/admin/login',
-  (req, res) => {
+  '/order/pending',
+  (
+    req,
+    res
+  ) => {
     res.send(
       layout(
-        'Administrador',
+        'Pago pendiente',
         `
-          <section>
-            <div class="container">
+          <main>
+            <section>
+              <div class="container">
 
-              <div
-                class="form-card"
-                style="max-width:460px;"
-              >
+                <h1>
+                  Pago pendiente
+                </h1>
 
-                <h2>
-                  Panel administrador
-                </h2>
-
-                <form
-                  method="POST"
-                  action="/admin/login"
+                <a
+                  class="button"
+                  href="/"
                 >
+                  Volver
+                </a>
 
-                  <div
-                    style="margin-bottom:16px;"
+              </div>
+            </section>
+          </main>
+        `
+      )
+    );
+  }
+);
+
+app.get(
+  '/order/failure',
+  (
+    req,
+    res
+  ) => {
+    res.send(
+      layout(
+        'Pago rechazado',
+        `
+          <main>
+            <section>
+              <div class="container">
+
+                <h1>
+                  Pago rechazado
+                </h1>
+
+                <a
+                  class="button"
+                  href="/"
+                >
+                  Volver
+                </a>
+
+              </div>
+            </section>
+          </main>
+        `
+      )
+    );
+  }
+);
+app.get(
+  '/admin/login',
+  (
+    req,
+    res
+  ) => {
+    res.send(
+      layout(
+        'Ingresar al panel',
+        `
+          <main>
+            <section>
+              <div class="container">
+
+                <div class="form-box">
+
+                  <h1>
+                    Panel de administración
+                  </h1>
+
+                  <form
+                    method="POST"
+                    action="/admin/login"
                   >
+
                     <label>
                       Email
                     </label>
@@ -2325,12 +2639,8 @@ app.get(
                       type="email"
                       name="email"
                       required
-                    />
-                  </div>
+                    >
 
-                  <div
-                    style="margin-bottom:20px;"
-                  >
                     <label>
                       Contraseña
                     </label>
@@ -2339,22 +2649,24 @@ app.get(
                       type="password"
                       name="password"
                       required
-                    />
-                  </div>
+                    >
 
-                  <button
-                    class="btn btn-primary"
-                    type="submit"
-                  >
-                    Ingresar
-                  </button>
+                    <button
+                      class="button button-full"
+                      type="submit"
+                      style="
+                        margin-top:20px;
+                      "
+                    >
+                      Ingresar
+                    </button>
 
-                </form>
+                  </form>
 
+                </div>
               </div>
-
-            </div>
-          </section>
+            </section>
+          </main>
         `
       )
     );
@@ -2363,13 +2675,18 @@ app.get(
 
 app.post(
   '/admin/login',
-  (req, res) => {
+  (
+    req,
+    res
+  ) => {
     const {
       email,
       password
     } = req.body;
 
     if (
+      !ADMIN_EMAIL ||
+      !ADMIN_PASSWORD ||
       email !== ADMIN_EMAIL ||
       password !== ADMIN_PASSWORD
     ) {
@@ -2377,43 +2694,36 @@ app.post(
         .status(401)
         .send(
           layout(
-            'Acceso denegado',
+            'Acceso incorrecto',
             `
-              <section>
-                <div class="container">
+              <main>
+                <section>
+                  <div class="container">
 
-                  <div class="error">
-                    Email o contraseña
-                    incorrectos.
+                    <div class="form-box">
+
+                      <h1>
+                        Datos incorrectos
+                      </h1>
+
+                      <a
+                        class="button"
+                        href="/admin/login"
+                      >
+                        Intentar nuevamente
+                      </a>
+
+                    </div>
                   </div>
-
-                  <a
-                    class="btn btn-primary"
-                    href="/admin/login"
-                  >
-                    Volver
-                  </a>
-
-                </div>
-              </section>
+                </section>
+              </main>
             `
           )
         );
     }
 
     const token =
-      jwt.sign(
-        {
-          email
-        },
-
-        JWT_SECRET,
-
-        {
-          expiresIn:
-            '7d'
-        }
-      );
+      createAdminToken();
 
     res.cookie(
       'admin_token',
@@ -2421,7 +2731,6 @@ app.post(
       {
         httpOnly: true,
         sameSite: 'lax',
-
         secure:
           PUBLIC_URL.startsWith(
             'https://'
@@ -2444,7 +2753,10 @@ app.post(
 
 app.get(
   '/admin/logout',
-  (req, res) => {
+  (
+    req,
+    res
+  ) => {
     res.clearCookie(
       'admin_token'
     );
@@ -2455,424 +2767,868 @@ app.get(
   }
 );
 
+async function getInscriptions() {
+  const data =
+    await supabaseRequest(
+      'inscriptions?select=*&order=created_at.desc'
+    );
+
+  if (
+    Array.isArray(data)
+  ) {
+    return data;
+  }
+
+  return [];
+}
+
+async function getOrders() {
+  const data =
+    await supabaseRequest(
+      'orders?select=*&order=created_at.desc'
+    );
+
+  if (
+    Array.isArray(data)
+  ) {
+    return data;
+  }
+
+  return [];
+}
+
+function inscriptionTable(
+  inscriptions
+) {
+  if (!inscriptions.length) {
+    return `
+      <p>
+        Todavía no hay
+        personas inscriptas.
+      </p>
+    `;
+  }
+
+  return `
+    <div class="table-wrap">
+      <table>
+
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Documento</th>
+            <th>Nacimiento</th>
+            <th>WhatsApp</th>
+            <th>Curso</th>
+            <th>Horario</th>
+            <th>Pago</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          ${inscriptions
+            .map(item => `
+              <tr>
+
+                <td>
+                  ${escapeHtml(
+                    item.first_name || ''
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    item.last_name || ''
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    item.document || ''
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    item.birth_date || ''
+                  )}
+                </td>
+
+                <td>
+                  <a
+                    href="https://wa.me/${escapeHtml(
+                      String(
+                        item.whatsapp || ''
+                      ).replace(
+                        /\D/g,
+                        ''
+                      )
+                    )}"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    ${escapeHtml(
+                      item.whatsapp || ''
+                    )}
+                  </a>
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    item.course_name || ''
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    item.schedule || ''
+                  )}
+                </td>
+
+                <td>
+                  ${
+                    item.payment_status ===
+                    'paid'
+                      ? `
+                        <span
+                          class="status-paid"
+                        >
+                          PAGADO
+                        </span>
+                      `
+                      : `
+                        <span
+                          class="status-pending"
+                        >
+                          ${escapeHtml(
+                            String(
+                              item.payment_status ||
+                              'pending'
+                            ).toUpperCase()
+                          )}
+                        </span>
+                      `
+                  }
+                </td>
+
+              </tr>
+            `)
+            .join('')}
+
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function orderTable(
+  orders
+) {
+  if (!orders.length) {
+    return `
+      <p>
+        Todavía no hay pedidos.
+      </p>
+    `;
+  }
+
+  return `
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>WhatsApp</th>
+            <th>Artículos</th>
+            <th>Total</th>
+            <th>Pago</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          ${orders
+            .map(order => {
+              const items =
+                Array.isArray(
+                  order.items
+                )
+                  ? order.items
+                  : [];
+
+              return `
+                <tr>
+
+                  <td>
+                    ${escapeHtml(
+                      order.buyer_name || ''
+                    )}
+                  </td>
+
+                  <td>
+                    ${escapeHtml(
+                      order.buyer_whatsapp || ''
+                    )}
+                  </td>
+
+                  <td>
+                    ${items
+                      .map(item =>
+                        escapeHtml(
+                          item.name +
+                          ' x' +
+                          item.quantity
+                        )
+                      )
+                      .join('<br>')}
+                  </td>
+
+                  <td>
+                    ${money(
+                      order.total
+                    )}
+                  </td>
+
+                  <td>
+                    ${escapeHtml(
+                      String(
+                        order.payment_status ||
+                        'pending'
+                      ).toUpperCase()
+                    )}
+                  </td>
+
+                </tr>
+              `;
+            })
+            .join('')}
+
+        </tbody>
+
+      </table>
+
+    </div>
+  `;
+}
+
 app.get(
   '/admin',
   adminRequired,
-  async (req, res) => {
-    const courses =
-      await getCourses();
+  async (
+    req,
+    res
+  ) => {
+    const [
+      courses,
+      products,
+      settings,
+      inscriptions,
+      orders
+    ] =
+      await Promise.all([
+        getCourses(),
+        getProducts(),
+        getSiteSettings(),
+        getInscriptions(),
+        getOrders()
+      ]);
 
-    const products =
-      await getProducts();
+    const courseForms =
+      courses
+        .map(course => `
+          <div class="admin-item">
+
+            <h3>
+              ${escapeHtml(
+                course.name
+              )}
+            </h3>
+
+            ${
+              course.image
+                ? `
+                  <img
+                    class="admin-image-preview"
+                    src="${escapeHtml(
+                      course.image
+                    )}"
+                    alt=""
+                  >
+                `
+                : ''
+            }
+
+            <form
+              method="POST"
+              action="/admin/course/update"
+            >
+
+              <input
+                type="hidden"
+                name="id"
+                value="${escapeHtml(
+                  course.id
+                )}"
+              >
+
+              <label>
+                Nombre
+              </label>
+
+              <input
+                name="name"
+                value="${escapeHtml(
+                  course.name
+                )}"
+                required
+              >
+
+              <label>
+                URL de la imagen
+              </label>
+
+              <input
+                type="url"
+                name="image"
+                value="${escapeHtml(
+                  course.image || ''
+                )}"
+                placeholder="https://..."
+              >
+
+              <label>
+                Descripción
+              </label>
+
+              <textarea
+                name="description"
+              >${escapeHtml(
+                course.description
+              )}</textarea>
+
+              <label>
+                Horarios
+              </label>
+
+              <textarea
+                name="schedules"
+              >${escapeHtml(
+                course.schedules.join(
+                  '\n'
+                )
+              )}</textarea>
+
+              <label>
+                Matrícula
+              </label>
+
+              <input
+                type="number"
+                name="registration"
+                value="${Number(
+                  course.registration
+                )}"
+              >
+
+              <label>
+                Cuota
+              </label>
+
+              <input
+                type="number"
+                name="monthlyFee"
+                value="${Number(
+                  course.monthlyFee
+                )}"
+              >
+
+              <button
+                class="button"
+                type="submit"
+                style="
+                  margin-top:16px;
+                "
+              >
+                Guardar curso
+              </button>
+
+            </form>
+
+          </div>
+        `)
+        .join('');
+
+    const productForms =
+      products
+        .map(product => `
+          <div class="admin-item">
+
+            <h3>
+              ${escapeHtml(
+                product.name
+              )}
+            </h3>
+
+            ${
+              product.image
+                ? `
+                  <img
+                    class="admin-image-preview"
+                    src="${escapeHtml(
+                      product.image
+                    )}"
+                    alt=""
+                  >
+                `
+                : ''
+            }
+
+            <form
+              method="POST"
+              action="/admin/product/update"
+            >
+
+              <input
+                type="hidden"
+                name="id"
+                value="${escapeHtml(
+                  product.id
+                )}"
+              >
+
+              <label>
+                Nombre
+              </label>
+
+              <input
+                name="name"
+                value="${escapeHtml(
+                  product.name
+                )}"
+                required
+              >
+
+              <label>
+                URL de la imagen
+              </label>
+
+              <input
+                type="url"
+                name="image"
+                value="${escapeHtml(
+                  product.image || ''
+                )}"
+                placeholder="https://..."
+              >
+
+              <label>
+                Precio
+              </label>
+
+              <input
+                type="number"
+                name="price"
+                value="${Number(
+                  product.price
+                )}"
+              >
+
+              <label>
+                Stock
+              </label>
+
+              <input
+                type="number"
+                name="stock"
+                value="${Number(
+                  product.stock
+                )}"
+              >
+
+              <button
+                class="button"
+                type="submit"
+                style="
+                  margin-top:16px;
+                "
+              >
+                Guardar artículo
+              </button>
+
+            </form>
+
+          </div>
+        `)
+        .join('');
 
     res.send(
       layout(
-        'Panel administrador',
+        'Panel de administración',
         `
-          ${navbar()}
+          <main>
 
-          <section>
-            <div class="container">
+            <section>
+              <div class="container">
 
-              <div class="admin-top">
+                <div
+                  style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    gap:15px;
+                    flex-wrap:wrap;
+                  "
+                >
+                  <h1 class="section-title">
+                    Panel de administración
+                  </h1>
 
-                <div>
-                  <h2>
-                    Panel administrador
-                  </h2>
-
-                  <p class="section-text">
-                    Desde acá podés
-                    agregar y editar
-                    cursos y productos.
-                  </p>
+                  <a
+                    class="button button-dark"
+                    href="/admin/logout"
+                  >
+                    Cerrar sesión
+                  </a>
                 </div>
 
-                <a
-                  class="btn btn-dark"
-                  href="/admin/logout"
-                >
-                  Cerrar sesión
-                </a>
+                <div class="admin-section">
 
-              </div>
+                  <h2>
+                    Fondo de la página
+                  </h2>
 
-              <h2>
-                Cursos
-              </h2>
+                  <p>
+                    Pegá la URL de la imagen
+                    que querés usar como fondo.
+                  </p>
 
-              <div class="add-box">
+                  ${
+                    settings.backgroundImage
+                      ? `
+                        <img
+                          class="admin-image-preview"
+                          src="${escapeHtml(
+                            settings.backgroundImage
+                          )}"
+                          alt=""
+                        >
+                      `
+                      : ''
+                  }
 
-                <h3>
-                  ➕ Agregar curso
-                </h3>
+                  <form
+                    method="POST"
+                    action="/admin/settings"
+                  >
 
-                <form
-                  method="POST"
-                  action="/admin/course/add"
-                >
+                    <label>
+                      URL de la foto de fondo
+                    </label>
 
-                  <div class="form-grid">
-
-                    <div>
-                      <label>
-                        Icono
-                      </label>
-
-                      <input
-                        name="icon"
-                        value="🎓"
-                      />
-                    </div>
-
-                    <div>
-                      <label>
-                        Nombre del curso
-                      </label>
-
-                      <input
-                        name="name"
-                        required
-                      />
-                    </div>
-
-                    <div class="full">
-                      <label>
-                        Descripción
-                      </label>
-
-                      <textarea
-                        name="description"
-                      ></textarea>
-                    </div>
-
-                    <div class="full">
-                      <label>
-                        Horarios
-                        (uno por línea)
-                      </label>
-
-                      <textarea
-                        name="schedules"
-                        placeholder="Martes de 16:00 a 18:00"
-                      ></textarea>
-                    </div>
-
-                    <div>
-                      <label>
-                        Inscripción
-                      </label>
-
-                      <input
-                        type="number"
-                        name="registration"
-                        value="20000"
-                      />
-                    </div>
-
-                    <div>
-                      <label>
-                        Cuota
-                      </label>
-
-                      <input
-                        type="number"
-                        name="monthlyFee"
-                        value="80000"
-                      />
-                    </div>
-
-                    <div class="full">
-
-                      <button
-                        class="btn btn-primary"
-                        type="submit"
-                      >
-                        ➕ Agregar curso
-                      </button>
-
-                    </div>
-
-                  </div>
-
-                </form>
-
-              </div>
-
-              ${courses.map(course => `
-                <form
-                  class="admin-card"
-                  method="POST"
-                  action="/admin/course/update"
-                >
-
-                  <input
-                    type="hidden"
-                    name="id"
-                    value="${escapeHtml(course.id)}"
-                  />
-
-                  <div class="form-grid">
-
-                    <div>
-                      <label>
-                        Icono
-                      </label>
-
-                      <input
-                        name="icon"
-                        value="${escapeHtml(course.icon)}"
-                      />
-                    </div>
-
-                    <div>
-                      <label>
-                        Nombre
-                      </label>
-
-                      <input
-                        name="name"
-                        value="${escapeHtml(course.name)}"
-                      />
-                    </div>
-
-                    <div class="full">
-                      <label>
-                        Descripción
-                      </label>
-
-                      <textarea
-                        name="description"
-                      >${escapeHtml(course.description)}</textarea>
-                    </div>
-
-                    <div class="full">
-                      <label>
-                        Horarios
-                      </label>
-
-                      <textarea
-                        name="schedules"
-                      >${escapeHtml(
-                        course.schedules.join(
-                          '\n'
-                        )
-                      )}</textarea>
-                    </div>
-
-                    <div>
-                      <label>
-                        Inscripción
-                      </label>
-
-                      <input
-                        type="number"
-                        name="registration"
-                        value="${Number(course.registration)}"
-                      />
-                    </div>
-
-                    <div>
-                      <label>
-                        Cuota
-                      </label>
-
-                      <input
-                        type="number"
-                        name="monthlyFee"
-                        value="${Number(course.monthlyFee)}"
-                      />
-                    </div>
-
-                  </div>
-
-                  <div class="admin-actions">
+                    <input
+                      type="url"
+                      name="backgroundImage"
+                      value="${escapeHtml(
+                        settings.backgroundImage ||
+                        ''
+                      )}"
+                      placeholder="https://..."
+                    >
 
                     <button
-                      class="btn btn-primary"
+                      class="button"
                       type="submit"
+                      style="
+                        margin-top:16px;
+                      "
                     >
-                      Guardar curso
+                      Cambiar fondo
                     </button>
 
-                  </div>
+                  </form>
 
-                </form>
-              `).join('')}
+                </div>
 
-              <h2
-                style="margin-top:50px;"
-              >
-                Productos
-              </h2>
+                <div class="admin-section">
 
-              <div class="add-box">
+                  <h2>
+                    Agregar curso
+                  </h2>
 
-                <h3>
-                  ➕ Agregar artículo
-                </h3>
+                  <form
+                    method="POST"
+                    action="/admin/course/add"
+                  >
 
-                <form
-                  method="POST"
-                  action="/admin/product/add"
-                >
+                    <label>
+                      Nombre
+                    </label>
 
-                  <div class="form-grid">
+                    <input
+                      name="name"
+                      required
+                    >
 
-                    <div>
-                      <label>
-                        Icono
-                      </label>
+                    <label>
+                      URL de la imagen
+                    </label>
 
-                      <input
-                        name="icon"
-                        value="🛍️"
-                      />
-                    </div>
+                    <input
+                      type="url"
+                      name="image"
+                      placeholder="https://..."
+                    >
 
-                    <div>
-                      <label>
-                        Nombre
-                      </label>
+                    <label>
+                      Descripción
+                    </label>
 
-                      <input
-                        name="name"
-                        required
-                      />
-                    </div>
+                    <textarea
+                      name="description"
+                    ></textarea>
 
-                    <div>
-                      <label>
-                        Precio
-                      </label>
+                    <label>
+                      Horarios
+                    </label>
 
-                      <input
-                        type="number"
-                        name="price"
-                        required
-                      />
-                    </div>
+                    <textarea
+                      name="schedules"
+                      placeholder="Un horario por línea"
+                    ></textarea>
 
-                    <div>
-                      <label>
-                        Stock
-                      </label>
+                    <label>
+                      Matrícula
+                    </label>
 
-                      <input
-                        type="number"
-                        name="stock"
-                        value="1"
-                      />
-                    </div>
+                    <input
+                      type="number"
+                      name="registration"
+                      value="20000"
+                    >
 
-                    <div class="full">
+                    <label>
+                      Cuota
+                    </label>
 
-                      <button
-                        class="btn btn-primary"
-                        type="submit"
-                      >
-                        ➕ Agregar artículo
-                      </button>
-
-                    </div>
-
-                  </div>
-
-                </form>
-
-              </div>
-
-              ${products.map(product => `
-                <form
-                  class="admin-card"
-                  method="POST"
-                  action="/admin/product/update"
-                >
-
-                  <input
-                    type="hidden"
-                    name="id"
-                    value="${escapeHtml(product.id)}"
-                  />
-
-                  <div class="form-grid">
-
-                    <div>
-                      <label>
-                        Icono
-                      </label>
-
-                      <input
-                        name="icon"
-                        value="${escapeHtml(product.icon)}"
-                      />
-                    </div>
-
-                    <div>
-                      <label>
-                        Nombre
-                      </label>
-
-                      <input
-                        name="name"
-                        value="${escapeHtml(product.name)}"
-                      />
-                    </div>
-
-                    <div>
-                      <label>
-                        Precio
-                      </label>
-
-                      <input
-                        type="number"
-                        name="price"
-                        value="${Number(product.price)}"
-                      />
-                    </div>
-
-                    <div>
-                      <label>
-                        Stock
-                      </label>
-
-                      <input
-                        type="number"
-                        name="stock"
-                        value="${Number(product.stock)}"
-                      />
-                    </div>
-
-                  </div>
-
-                  <div class="admin-actions">
+                    <input
+                      type="number"
+                      name="monthlyFee"
+                      value="80000"
+                    >
 
                     <button
-                      class="btn btn-primary"
+                      class="button"
                       type="submit"
+                      style="
+                        margin-top:16px;
+                      "
                     >
-                      Guardar artículo
+                      + Agregar curso
                     </button>
 
-                  </div>
+                  </form>
 
-                </form>
-              `).join('')}
+                </div>
 
-            </div>
-          </section>
-        `
+                <div class="admin-section">
+
+                  <h2>
+                    Editar cursos
+                  </h2>
+
+                  ${courseForms}
+
+                </div>
+
+                <div class="admin-section">
+
+                  <h2>
+                    Agregar artículo
+                  </h2>
+
+                  <form
+                    method="POST"
+                    action="/admin/product/add"
+                  >
+
+                    <label>
+                      Nombre
+                    </label>
+
+                    <input
+                      name="name"
+                      required
+                    >
+
+                    <label>
+                      URL de la imagen
+                    </label>
+
+                    <input
+                      type="url"
+                      name="image"
+                      placeholder="https://..."
+                    >
+
+                    <label>
+                      Precio
+                    </label>
+
+                    <input
+                      type="number"
+                      name="price"
+                      required
+                    >
+
+                    <label>
+                      Stock
+                    </label>
+
+                    <input
+                      type="number"
+                      name="stock"
+                      value="0"
+                    >
+
+                    <button
+                      class="button"
+                      type="submit"
+                      style="
+                        margin-top:16px;
+                      "
+                    >
+                      + Agregar artículo
+                    </button>
+
+                  </form>
+
+                </div>
+
+                <div class="admin-section">
+
+                  <h2>
+                    Editar artículos
+                  </h2>
+
+                  ${productForms}
+
+                </div>
+
+                <div class="admin-section">
+
+                  <h2>
+                    Personas inscriptas
+                  </h2>
+
+                  ${inscriptionTable(
+                    inscriptions
+                  )}
+
+                </div>
+
+                <div class="admin-section">
+
+                  <h2>
+                    Pedidos de artículos
+                  </h2>
+
+                  ${orderTable(
+                    orders
+                  )}
+
+                </div>
+
+              </div>
+            </section>
+
+          </main>
+        `,
+        settings
       )
     );
   }
 );
 app.post(
+  '/admin/settings',
+  adminRequired,
+  async (
+    req,
+    res
+  ) => {
+    const backgroundImage =
+      String(
+        req.body.backgroundImage || ''
+      ).trim();
+
+    siteSettings.backgroundImage =
+      backgroundImage;
+
+    const existing =
+      await supabaseRequest(
+        'site_settings?key=eq.main&select=*'
+      );
+
+    if (
+      Array.isArray(existing) &&
+      existing.length
+    ) {
+      await supabaseRequest(
+        'site_settings?key=eq.main',
+        {
+          method: 'PATCH',
+
+          headers: {
+            Prefer:
+              'return=minimal'
+          },
+
+          body:
+            JSON.stringify({
+              background_image:
+                backgroundImage
+            })
+        }
+      );
+    } else {
+      await supabaseRequest(
+        'site_settings',
+        {
+          method: 'POST',
+
+          headers: {
+            Prefer:
+              'return=minimal'
+          },
+
+          body:
+            JSON.stringify({
+              key: 'main',
+
+              background_image:
+                backgroundImage
+            })
+        }
+      );
+    }
+
+    res.redirect('/admin');
+  }
+);
+
+app.post(
   '/admin/course/add',
   adminRequired,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     const {
-      icon,
       name,
+      image,
       description,
       schedules,
       registration,
@@ -2880,263 +3636,426 @@ app.post(
     } = req.body;
 
     const cleanName =
-      String(name || '').trim();
+      String(name || '')
+        .trim();
 
     if (!cleanName) {
-      return res.redirect('/admin');
+      return res.redirect(
+        '/admin'
+      );
     }
 
     const baseId =
-      slugify(cleanName) ||
-      `curso-${Date.now()}`;
+      slugify(
+        cleanName
+      ) ||
+      'curso';
 
     const id =
-      `${baseId}-${Date.now()}`;
+      baseId +
+      '-' +
+      Date.now();
 
     const scheduleList =
-      String(schedules || '')
-        .split('\n')
-        .map(item => item.trim())
-        .filter(Boolean);
+      normalizeSchedules(
+        schedules
+      );
 
-    const newCourse = {
-      id,
+    const course = {
+      id:
+        id,
+
       icon:
-        String(icon || '🎓').trim() || '🎓',
+        '🎓',
+
+      image:
+        String(
+          image || ''
+        ).trim(),
+
       name:
         cleanName,
+
       description:
-        String(description || '').trim(),
+        String(
+          description || ''
+        ).trim(),
+
       schedules:
         scheduleList.length
           ? scheduleList
-          : ['Horario próximamente'],
+          : [
+              'Horario próximamente'
+            ],
+
       registration:
-        Number(registration || 0),
+        Number(
+          registration || 0
+        ),
+
       monthlyFee:
-        Number(monthlyFee || 0)
+        Number(
+          monthlyFee || 0
+        )
     };
 
-    memoryCourses.push(newCourse);
+    memoryCourses.push(
+      course
+    );
 
     await supabaseRequest(
       'courses',
       {
         method: 'POST',
-        body: JSON.stringify([
-          {
+
+        headers: {
+          Prefer:
+            'return=minimal'
+        },
+
+        body:
+          JSON.stringify({
             id:
-              newCourse.id,
+              course.id,
+
             icon:
-              newCourse.icon,
+              course.icon,
+
+            image:
+              course.image,
+
             name:
-              newCourse.name,
+              course.name,
+
             description:
-              newCourse.description,
+              course.description,
+
             schedules:
-              newCourse.schedules,
+              course.schedules,
+
             registration:
-              newCourse.registration,
+              course.registration,
+
             monthly_fee:
-              newCourse.monthlyFee
-          }
-        ])
+              course.monthlyFee
+          })
       }
     );
 
-    return res.redirect('/admin');
+    res.redirect('/admin');
   }
 );
 
 app.post(
   '/admin/course/update',
   adminRequired,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     const {
       id,
-      icon,
       name,
+      image,
       description,
       schedules,
       registration,
       monthlyFee
     } = req.body;
 
-    const scheduleList =
-      String(schedules || '')
-        .split('\n')
-        .map(item => item.trim())
-        .filter(Boolean);
-
-    const updatedCourse = {
-      id,
-      icon:
-        String(icon || '🎓').trim() || '🎓',
-      name:
-        String(name || '').trim(),
-      description:
-        String(description || '').trim(),
-      schedules:
-        scheduleList.length
-          ? scheduleList
-          : ['Horario próximamente'],
-      registration:
-        Number(registration || 0),
-      monthlyFee:
-        Number(monthlyFee || 0)
-    };
-
-    memoryCourses =
-      memoryCourses.map(course =>
-        course.id === id
-          ? updatedCourse
-          : course
+    const course =
+      memoryCourses.find(
+        item =>
+          String(item.id) ===
+          String(id)
       );
 
+    if (course) {
+      course.name =
+        String(
+          name || course.name
+        ).trim();
+
+      course.image =
+        String(
+          image || ''
+        ).trim();
+
+      course.description =
+        String(
+          description || ''
+        ).trim();
+
+      const scheduleList =
+        normalizeSchedules(
+          schedules
+        );
+
+      course.schedules =
+        scheduleList.length
+          ? scheduleList
+          : [
+              'Horario próximamente'
+            ];
+
+      course.registration =
+        Number(
+          registration || 0
+        );
+
+      course.monthlyFee =
+        Number(
+          monthlyFee || 0
+        );
+    }
+
     await supabaseRequest(
-      `courses?id=eq.${encodeURIComponent(id)}`,
+      'courses?id=eq.' +
+      encodeURIComponent(
+        id
+      ),
       {
         method: 'PATCH',
-        body: JSON.stringify({
-          icon:
-            updatedCourse.icon,
-          name:
-            updatedCourse.name,
-          description:
-            updatedCourse.description,
-          schedules:
-            updatedCourse.schedules,
-          registration:
-            updatedCourse.registration,
-          monthly_fee:
-            updatedCourse.monthlyFee
-        })
+
+        headers: {
+          Prefer:
+            'return=minimal'
+        },
+
+        body:
+          JSON.stringify({
+            name:
+              String(
+                name || ''
+              ).trim(),
+
+            image:
+              String(
+                image || ''
+              ).trim(),
+
+            description:
+              String(
+                description || ''
+              ).trim(),
+
+            schedules:
+              normalizeSchedules(
+                schedules
+              ),
+
+            registration:
+              Number(
+                registration || 0
+              ),
+
+            monthly_fee:
+              Number(
+                monthlyFee || 0
+              )
+          })
       }
     );
 
-    return res.redirect('/admin');
+    res.redirect('/admin');
   }
 );
 
 app.post(
   '/admin/product/add',
   adminRequired,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     const {
-      icon,
       name,
+      image,
       price,
       stock
     } = req.body;
 
     const cleanName =
-      String(name || '').trim();
+      String(name || '')
+        .trim();
 
     if (!cleanName) {
-      return res.redirect('/admin');
+      return res.redirect(
+        '/admin'
+      );
     }
 
     const baseId =
-      slugify(cleanName) ||
-      `producto-${Date.now()}`;
+      slugify(
+        cleanName
+      ) ||
+      'articulo';
 
     const id =
-      `${baseId}-${Date.now()}`;
+      baseId +
+      '-' +
+      Date.now();
 
-    const newProduct = {
-      id,
+    const product = {
+      id:
+        id,
+
       icon:
-        String(icon || '🛍️').trim() || '🛍️',
+        '🛍️',
+
+      image:
+        String(
+          image || ''
+        ).trim(),
+
       name:
         cleanName,
+
       price:
-        Number(price || 0),
+        Number(
+          price || 0
+        ),
+
       stock:
-        Number(stock || 0)
+        Number(
+          stock || 0
+        )
     };
 
-    memoryProducts.push(newProduct);
+    memoryProducts.push(
+      product
+    );
 
     await supabaseRequest(
       'products',
       {
         method: 'POST',
-        body: JSON.stringify([
-          {
+
+        headers: {
+          Prefer:
+            'return=minimal'
+        },
+
+        body:
+          JSON.stringify({
             id:
-              newProduct.id,
+              product.id,
+
             icon:
-              newProduct.icon,
+              product.icon,
+
+            image:
+              product.image,
+
             name:
-              newProduct.name,
+              product.name,
+
             price:
-              newProduct.price,
+              product.price,
+
             stock:
-              newProduct.stock
-          }
-        ])
+              product.stock
+          })
       }
     );
 
-    return res.redirect('/admin');
+    res.redirect('/admin');
   }
 );
 
 app.post(
   '/admin/product/update',
   adminRequired,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     const {
       id,
-      icon,
       name,
+      image,
       price,
       stock
     } = req.body;
 
-    const updatedProduct = {
-      id,
-      icon:
-        String(icon || '🛍️').trim() || '🛍️',
-      name:
-        String(name || '').trim(),
-      price:
-        Number(price || 0),
-      stock:
-        Number(stock || 0)
-    };
-
-    memoryProducts =
-      memoryProducts.map(product =>
-        product.id === id
-          ? updatedProduct
-          : product
+    const product =
+      memoryProducts.find(
+        item =>
+          String(item.id) ===
+          String(id)
       );
 
+    if (product) {
+      product.name =
+        String(
+          name ||
+          product.name
+        ).trim();
+
+      product.image =
+        String(
+          image || ''
+        ).trim();
+
+      product.price =
+        Number(
+          price || 0
+        );
+
+      product.stock =
+        Number(
+          stock || 0
+        );
+    }
+
     await supabaseRequest(
-      `products?id=eq.${encodeURIComponent(id)}`,
+      'products?id=eq.' +
+      encodeURIComponent(
+        id
+      ),
       {
         method: 'PATCH',
-        body: JSON.stringify({
-          icon:
-            updatedProduct.icon,
-          name:
-            updatedProduct.name,
-          price:
-            updatedProduct.price,
-          stock:
-            updatedProduct.stock
-        })
+
+        headers: {
+          Prefer:
+            'return=minimal'
+        },
+
+        body:
+          JSON.stringify({
+            name:
+              String(
+                name || ''
+              ).trim(),
+
+            image:
+              String(
+                image || ''
+              ).trim(),
+
+            price:
+              Number(
+                price || 0
+              ),
+
+            stock:
+              Number(
+                stock || 0
+              )
+          })
       }
     );
 
-    return res.redirect('/admin');
+    res.redirect('/admin');
   }
 );
 
 app.get(
   '/health',
-  (req, res) => {
+  (
+    req,
+    res
+  ) => {
     res.json({
       ok: true
     });
@@ -3144,31 +4063,37 @@ app.get(
 );
 
 app.use(
-  (req, res) => {
+  (
+    req,
+    res
+  ) => {
     res
       .status(404)
       .send(
         layout(
           'Página no encontrada',
           `
-            ${navbar()}
+            <main>
+              <section>
+                <div class="container">
 
-            <section>
-              <div class="container">
+                  <div class="form-box">
 
-                <div class="error">
-                  Página no encontrada.
+                    <h1>
+                      Página no encontrada
+                    </h1>
+
+                    <a
+                      class="button"
+                      href="/"
+                    >
+                      Volver al inicio
+                    </a>
+
+                  </div>
                 </div>
-
-                <a
-                  class="btn btn-primary"
-                  href="/"
-                >
-                  Volver al inicio
-                </a>
-
-              </div>
-            </section>
+              </section>
+            </main>
           `
         )
       );
@@ -3177,10 +4102,10 @@ app.use(
 
 app.listen(
   PORT,
-  '0.0.0.0',
   () => {
     console.log(
-      `Centro Constitución funcionando en puerto ${PORT}`
+      'Centro Constitución funcionando en puerto ' +
+      PORT
     );
   }
 );
