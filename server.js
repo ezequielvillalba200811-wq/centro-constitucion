@@ -1435,160 +1435,163 @@ function cartSection() {
             return;
           }
 
-          box.innerHTML =
-            cart.map(item => `
-              <div
-                style="
-                  display:flex;
-                  justify-content:space-between;
-                  align-items:center;
-                  gap:12px;
-                  padding:12px 0;
-                  border-bottom:1px solid #2d2d2d;
-                "
-              >
+      box.innerHTML =
+        cart.map(function(item) {
+          const subtotal =
+            item.price *
+            item.quantity;
 
-                <div>
-                  <strong>
-                    \${item.name}
-                  </strong>
+          return (
+            '<div style="' +
+            'display:flex;' +
+            'justify-content:space-between;' +
+            'align-items:center;' +
+            'gap:12px;' +
+            'padding:12px 0;' +
+            'border-bottom:1px solid #2d2d2d;' +
+            '">' +
 
-                  <div
-                    style="color:#aaa;"
-                  >
-                    Cantidad:
-                    \${item.quantity}
-                  </div>
-                </div>
+            '<div>' +
 
-                <div>
-                  <strong>
-                    $\${(
-                      item.price *
-                      item.quantity
-                    ).toLocaleString(
-                      'es-AR'
-                    )}
-                  </strong>
+            '<strong>' +
+            item.name +
+            '</strong>' +
 
-                  <button
-                    type="button"
-                    onclick="
-                      removeFromCart(
-                        '\${item.id}'
-                      )
-                    "
-                    style="
-                      display:block;
-                      margin-top:6px;
-                      background:none;
-                      border:0;
-                      color:#ff8a80;
-                      cursor:pointer;
-                    "
-                  >
-                    Quitar
-                  </button>
-                </div>
+            '<div style="color:#aaa;">' +
+            'Cantidad: ' +
+            item.quantity +
+            '</div>' +
 
-              </div>
-            `).join('');
+            '</div>' +
 
-          const total =
-            cart.reduce(
-              (sum, item) =>
-                sum +
-                item.price *
-                item.quantity,
-              0
+            '<div>' +
+
+            '<strong>$' +
+            subtotal.toLocaleString('es-AR') +
+            '</strong>' +
+
+            '<button type="button" ' +
+            'onclick="removeFromCart(\\'' +
+            item.id +
+            '\\')" ' +
+            'style="' +
+            'display:block;' +
+            'margin-top:6px;' +
+            'background:none;' +
+            'border:0;' +
+            'color:#ff8a80;' +
+            'cursor:pointer;' +
+            '">' +
+            'Quitar' +
+            '</button>' +
+
+            '</div>' +
+
+            '</div>'
+          );
+        }).join('');
+
+      const total =
+        cart.reduce(
+          function(sum, item) {
+            return (
+              sum +
+              item.price *
+              item.quantity
             );
+          },
+          0
+        );
 
-          totalBox.textContent =
-            'Total: $' +
-            total.toLocaleString(
-              'es-AR'
-            );
-        }
+      totalBox.textContent =
+        'Total: $' +
+        total.toLocaleString(
+          'es-AR'
+        );
+    }
 
-        async function checkoutCart() {
-          if (!cart.length) {
-            alert(
-              'Agregá al menos un producto.'
-            );
-            return;
+    async function checkoutCart() {
+      if (!cart.length) {
+        alert(
+          'Agregá al menos un producto.'
+        );
+
+        return;
+      }
+
+      const name =
+        document
+          .getElementById(
+            'buyer-name'
+          )
+          .value
+          .trim();
+
+      const whatsapp =
+        document
+          .getElementById(
+            'buyer-whatsapp'
+          )
+          .value
+          .trim();
+
+      const email =
+        document
+          .getElementById(
+            'buyer-email'
+          )
+          .value
+          .trim();
+
+      if (!name || !whatsapp) {
+        alert(
+          'Completá tu nombre y WhatsApp.'
+        );
+
+        return;
+      }
+
+      const response =
+        await fetch(
+          '/checkout/products',
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body:
+              JSON.stringify({
+                name,
+                whatsapp,
+                email,
+                items: cart
+              })
           }
+        );
 
-          const name =
-            document
-              .getElementById(
-                'buyer-name'
-              )
-              .value
-              .trim();
+      const data =
+        await response.json();
 
-          const whatsapp =
-            document
-              .getElementById(
-                'buyer-whatsapp'
-              )
-              .value
-              .trim();
+      if (!response.ok) {
+        alert(
+          data.error ||
+          'No se pudo iniciar el pago.'
+        );
 
-          const email =
-            document
-              .getElementById(
-                'buyer-email'
-              )
-              .value
-              .trim();
+        return;
+      }
 
-          if (!name || !whatsapp) {
-            alert(
-              'Completá tu nombre y WhatsApp.'
-            );
-            return;
-          }
-
-          const response =
-            await fetch(
-              '/checkout/products',
-              {
-                method: 'POST',
-
-                headers: {
-                  'Content-Type':
-                    'application/json'
-                },
-
-                body:
-                  JSON.stringify({
-                    name,
-                    whatsapp,
-                    email,
-                    items: cart
-                  })
-              }
-            );
-
-          const data =
-            await response.json();
-
-          if (!response.ok) {
-            alert(
-              data.error ||
-              'No se pudo iniciar el pago.'
-            );
-            return;
-          }
-
-          if (data.url) {
-            window.location.href =
-              data.url;
-          }
-        }
-      </script>
-    </section>
-  `;
+      if (data.url) {
+        window.location.href =
+          data.url;
+      }
+    }
+  </script>
+</section>
+`;
 }
 
 function homePage(
