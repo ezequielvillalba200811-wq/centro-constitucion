@@ -1,15 +1,20 @@
 {
   "name": "centro-constitucion",
   "version": "1.0.0",
-  "private": true,
+  "description": "Sitio web de Centro Constitución",
   "type": "module",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "cookie-parser": "^1.4.7",
-    "dotenv": "^17.2.1",
+    "dotenv": "^16.4.5",
     "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2"
   }
 }
