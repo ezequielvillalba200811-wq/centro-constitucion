@@ -2,8 +2,37 @@ import 'dotenv/config';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
 
 const app = express();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+
+  limits: {
+    fileSize: 8 * 1024 * 1024
+  },
+
+  fileFilter: (
+    req,
+    file,
+    cb
+  ) => {
+    if (
+      file.mimetype.startsWith(
+        'image/'
+      )
+    ) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          'Solo se permiten imágenes.'
+        )
+      );
+    }
+  }
+});
 
 const PORT =
   process.env.PORT || 3000;
@@ -68,13 +97,16 @@ const defaultCourses = [
     icon: '💈',
     image: '',
     name: 'Barbería',
+
     description:
       'Curso de corte masculino desde nivel inicial con prácticas presenciales.',
+
     schedules: [
       'Martes de 16:00 a 18:00',
       'Sábados de 09:00 a 11:00',
       'Sábados de 11:00 a 13:00'
     ],
+
     registration: 20000,
     monthlyFee: 80000
   },
@@ -84,12 +116,15 @@ const defaultCourses = [
     icon: '✂️',
     image: '',
     name: 'Peluquería',
+
     description:
       'Curso de peluquería nivel inicial con prácticas presenciales.',
+
     schedules: [
       'Miércoles de 15:00 a 18:00',
       'Sábados de 09:00 a 12:00'
     ],
+
     registration: 20000,
     monthlyFee: 80000
   },
@@ -99,11 +134,14 @@ const defaultCourses = [
     icon: '🎨',
     image: '',
     name: 'Colorimetría',
+
     description:
       'Aprendé teoría del color, diagnóstico y técnicas profesionales.',
+
     schedules: [
       'Horario próximamente'
     ],
+
     registration: 20000,
     monthlyFee: 80000
   },
@@ -112,12 +150,16 @@ const defaultCourses = [
     id: 'manicuria-pedicuria',
     icon: '💅',
     image: '',
-    name: 'Manicuría y Pedicuría',
+    name:
+      'Manicuría y Pedicuría',
+
     description:
       'Curso presencial de técnicas de manicuría y pedicuría.',
+
     schedules: [
       'Horario próximamente'
     ],
+
     registration: 20000,
     monthlyFee: 80000
   }
@@ -125,30 +167,63 @@ const defaultCourses = [
 
 const defaultProducts = [
   {
-    id: 'tijera-profesional',
-    icon: '✂️',
-    image: '',
-    name: 'Tijera profesional',
-    price: 45000,
-    stock: 10
+    id:
+      'tijera-profesional',
+
+    icon:
+      '✂️',
+
+    image:
+      '',
+
+    name:
+      'Tijera profesional',
+
+    price:
+      45000,
+
+    stock:
+      10
   },
 
   {
-    id: 'maquina-corte',
-    icon: '🪒',
-    image: '',
-    name: 'Máquina de corte',
-    price: 90000,
-    stock: 8
+    id:
+      'maquina-corte',
+
+    icon:
+      '🪒',
+
+    image:
+      '',
+
+    name:
+      'Máquina de corte',
+
+    price:
+      90000,
+
+    stock:
+      8
   },
 
   {
-    id: 'secador-profesional',
-    icon: '💨',
-    image: '',
-    name: 'Secador profesional',
-    price: 70000,
-    stock: 6
+    id:
+      'secador-profesional',
+
+    icon:
+      '💨',
+
+    image:
+      '',
+
+    name:
+      'Secador profesional',
+
+    price:
+      70000,
+
+    stock:
+      6
   }
 ];
 
@@ -160,32 +235,63 @@ let memoryProducts =
 
 let siteSettings = {
   backgroundImage:
-    process.env.BACKGROUND_IMAGE || ''
+    process.env
+      .BACKGROUND_IMAGE || ''
 };
 
-function money(value) {
-  return new Intl.NumberFormat(
-    'es-AR',
-    {
-      style: 'currency',
-      currency: 'ARS',
-      maximumFractionDigits: 0
-    }
-  ).format(
-    Number(value || 0)
-  );
+function money(
+  value
+) {
+  return new Intl
+    .NumberFormat(
+      'es-AR',
+      {
+        style:
+          'currency',
+
+        currency:
+          'ARS',
+
+        maximumFractionDigits:
+          0
+      }
+    )
+    .format(
+      Number(
+        value || 0
+      )
+    );
 }
 
-function escapeHtml(value = '') {
+function escapeHtml(
+  value = ''
+) {
   return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+    .replaceAll(
+      '&',
+      '&amp;'
+    )
+    .replaceAll(
+      '<',
+      '&lt;'
+    )
+    .replaceAll(
+      '>',
+      '&gt;'
+    )
+    .replaceAll(
+      '"',
+      '&quot;'
+    )
+    .replaceAll(
+      "'",
+      '&#039;'
+    );
 }
 
-function slugify(value = '') {
+function slugify(
+  value = ''
+) {
   return String(value)
     .toLowerCase()
     .normalize('NFD')
@@ -203,9 +309,17 @@ function slugify(value = '') {
     );
 }
 
-function normalizeSchedules(value) {
-  if (Array.isArray(value)) {
-    return value;
+function normalizeSchedules(
+  value
+) {
+  if (
+    Array.isArray(value)
+  ) {
+    return value
+      .map(item =>
+        String(item).trim()
+      )
+      .filter(Boolean);
   }
 
   if (!value) {
@@ -214,10 +328,11 @@ function normalizeSchedules(value) {
 
   return String(value)
     .split('\n')
-    .map(item => item.trim())
+    .map(item =>
+      item.trim()
+    )
     .filter(Boolean);
 }
-
 async function supabaseRequest(
   path,
   options = {}
@@ -252,10 +367,13 @@ async function supabaseRequest(
       );
 
     if (!response.ok) {
+      const errorText =
+        await response.text();
+
       console.error(
-        'Supabase:',
+        'Error Supabase:',
         response.status,
-        await response.text()
+        errorText
       );
 
       return null;
@@ -275,12 +393,220 @@ async function supabaseRequest(
     }
   } catch (error) {
     console.error(
-      'Supabase error:',
+      'Error conectando con Supabase:',
       error
     );
 
     return null;
   }
+}
+
+async function supabaseWrite(
+  path,
+  options = {}
+) {
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_SECRET_KEY
+  ) {
+    throw new Error(
+      'Falta configurar Supabase en Render.'
+    );
+  }
+
+  const response =
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/${path}`,
+      {
+        ...options,
+
+        headers: {
+          apikey:
+            SUPABASE_SECRET_KEY,
+
+          Authorization:
+            `Bearer ${SUPABASE_SECRET_KEY}`,
+
+          'Content-Type':
+            'application/json',
+
+          Prefer:
+            'return=representation',
+
+          ...(options.headers || {})
+        }
+      }
+    );
+
+  const text =
+    await response.text();
+
+  if (!response.ok) {
+    console.error(
+      'Error guardando en Supabase:',
+      response.status,
+      text
+    );
+
+    throw new Error(
+      text ||
+      'No se pudo guardar el cambio.'
+    );
+  }
+
+  if (!text) {
+    return true;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+async function uploadImageToSupabase(
+  file,
+  folder = 'general'
+) {
+  if (!file) {
+    return '';
+  }
+
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_SECRET_KEY
+  ) {
+    throw new Error(
+      'Supabase no está configurado.'
+    );
+  }
+
+  const extension =
+    (
+      file.originalname
+        .split('.')
+        .pop() ||
+      'jpg'
+    )
+      .toLowerCase()
+      .replace(
+        /[^a-z0-9]/g,
+        ''
+      );
+
+  const fileName =
+    `${folder}/${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}.${extension}`;
+
+  const uploadResponse =
+    await fetch(
+      `${SUPABASE_URL}/storage/v1/object/site-images/${fileName}`,
+      {
+        method:
+          'POST',
+
+        headers: {
+          apikey:
+            SUPABASE_SECRET_KEY,
+
+          Authorization:
+            `Bearer ${SUPABASE_SECRET_KEY}`,
+
+          'Content-Type':
+            file.mimetype,
+
+          'x-upsert':
+            'true'
+        },
+
+        body:
+          file.buffer
+      }
+    );
+
+  if (!uploadResponse.ok) {
+    const text =
+      await uploadResponse.text();
+
+    console.error(
+      'Error subiendo imagen:',
+      text
+    );
+
+    throw new Error(
+      'No se pudo subir la imagen.'
+    );
+  }
+
+  return (
+    `${SUPABASE_URL}/storage/v1/object/public/site-images/${fileName}`
+  );
+}
+
+function databaseCourseToApp(
+  course
+) {
+  return {
+    id:
+      course.id,
+
+    icon:
+      course.icon || '✂️',
+
+    image:
+      course.image || '',
+
+    name:
+      course.name || '',
+
+    description:
+      course.description || '',
+
+    schedules:
+      normalizeSchedules(
+        course.schedules
+      ),
+
+    registration:
+      Number(
+        course.registration || 0
+      ),
+
+    monthlyFee:
+      Number(
+        course.monthly_fee || 0
+      )
+  };
+}
+
+function databaseProductToApp(
+  product
+) {
+  return {
+    id:
+      product.id,
+
+    icon:
+      product.icon || '🛍️',
+
+    image:
+      product.image || '',
+
+    name:
+      product.name || '',
+
+    price:
+      Number(
+        product.price || 0
+      ),
+
+    stock:
+      Number(
+        product.stock || 0
+      )
+  };
 }
 
 async function getCourses() {
@@ -291,34 +617,12 @@ async function getCourses() {
 
   if (
     Array.isArray(data) &&
-    data.length
+    data.length > 0
   ) {
     memoryCourses =
-      data.map(course => ({
-        id: String(course.id),
-        icon:
-          course.icon || '🎓',
-        image:
-          course.image || '',
-        name:
-          course.name || 'Curso',
-        description:
-          course.description || '',
-        schedules:
-          normalizeSchedules(
-            course.schedules
-          ),
-        registration:
-          Number(
-            course.registration || 0
-          ),
-        monthlyFee:
-          Number(
-            course.monthly_fee ??
-            course.monthlyFee ??
-            0
-          )
-      }));
+      data.map(
+        databaseCourseToApp
+      );
   }
 
   return memoryCourses;
@@ -332,26 +636,12 @@ async function getProducts() {
 
   if (
     Array.isArray(data) &&
-    data.length
+    data.length > 0
   ) {
     memoryProducts =
-      data.map(product => ({
-        id: String(product.id),
-        icon:
-          product.icon || '🛍️',
-        image:
-          product.image || '',
-        name:
-          product.name || 'Artículo',
-        price:
-          Number(
-            product.price || 0
-          ),
-        stock:
-          Number(
-            product.stock || 0
-          )
-      }));
+      data.map(
+        databaseProductToApp
+      );
   }
 
   return memoryProducts;
@@ -367,8 +657,11 @@ async function getSiteSettings() {
     Array.isArray(data) &&
     data[0]
   ) {
-    siteSettings.backgroundImage =
-      data[0].background_image || '';
+    siteSettings = {
+      backgroundImage:
+        data[0]
+          .background_image || ''
+    };
   }
 
   return siteSettings;
@@ -377,11 +670,15 @@ async function getSiteSettings() {
 function createAdminToken() {
   return jwt.sign(
     {
-      role: 'admin'
+      role:
+        'admin'
     },
+
     JWT_SECRET,
+
     {
-      expiresIn: '7d'
+      expiresIn:
+        '7d'
     }
   );
 }
@@ -392,7 +689,8 @@ function adminRequired(
   next
 ) {
   const token =
-    req.cookies.admin_token;
+    req.cookies
+      .admin_token;
 
   if (!token) {
     return res.redirect(
@@ -401,17 +699,18 @@ function adminRequired(
   }
 
   try {
-    const decoded =
+    const payload =
       jwt.verify(
         token,
         JWT_SECRET
       );
 
     if (
-      decoded.role !== 'admin'
+      payload.role !==
+      'admin'
     ) {
       throw new Error(
-        'No autorizado'
+        'Acceso inválido'
       );
     }
 
@@ -426,78 +725,98 @@ function adminRequired(
     );
   }
 }
-function socialIcons() {
-  return {
-    facebook: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor"
-          d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.45h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.77l-.44 2.89h-2.33v6.99A10 10 0 0 0 22 12z"/>
-      </svg>
-    `,
 
-    instagram: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor"
-          d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.25-3.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5z"/>
-      </svg>
-    `,
+function errorPage(
+  title,
+  message
+) {
+  return `
+    <div style="
+      max-width:700px;
+      margin:60px auto;
+      padding:25px;
+      font-family:Arial,sans-serif;
+      text-align:center;
+    ">
+      <h1>
+        ${escapeHtml(title)}
+      </h1>
 
-    tiktok: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor"
-          d="M14 3h3.1A5.9 5.9 0 0 0 21 6.9V10a9 9 0 0 1-4-1v6.5A6.5 6.5 0 1 1 10.5 9c.5 0 1 .06 1.5.17v3.2a3.5 3.5 0 1 0 2 3.13V3z"/>
-      </svg>
-    `,
+      <p style="
+        font-size:18px;
+        line-height:1.5;
+      ">
+        ${escapeHtml(message)}
+      </p>
 
-    google: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor"
-          d="M21.35 11.1H12v3.8h5.35c-.23 1.22-.93 2.25-1.98 2.94v2.44h3.2c1.87-1.72 2.95-4.26 2.95-7.28 0-.65-.06-1.28-.17-1.9z"/>
-        <path fill="currentColor"
-          d="M12 22c2.7 0 4.96-.9 6.57-2.43l-3.2-2.44c-.89.6-2.03.95-3.37.95-2.6 0-4.8-1.75-5.59-4.11H3.1v2.52A9.92 9.92 0 0 0 12 22z"/>
-        <path fill="currentColor"
-          d="M6.41 13.97A5.95 5.95 0 0 1 6.1 12c0-.68.12-1.34.31-1.97V7.51H3.1A10 10 0 0 0 2 12c0 1.61.39 3.13 1.1 4.49l3.31-2.52z"/>
-        <path fill="currentColor"
-          d="M12 5.92c1.47 0 2.79.51 3.83 1.5l2.87-2.87C16.96 2.93 14.7 2 12 2a9.92 9.92 0 0 0-8.9 5.51l3.31 2.52C7.2 7.67 9.4 5.92 12 5.92z"/>
-      </svg>
-    `
-  };
+      <a
+        href="/admin"
+        style="
+          display:inline-block;
+          margin-top:20px;
+          padding:12px 20px;
+          background:#111;
+          color:white;
+          text-decoration:none;
+          border-radius:8px;
+        "
+      >
+        Volver al panel
+      </a>
+    </div>
+  `;
 }
-
 function layout(
   title,
   content,
-  settings = siteSettings
+  options = {}
 ) {
-  const background =
-    settings.backgroundImage
+  const backgroundImage =
+    options.backgroundImage ||
+    siteSettings.backgroundImage ||
+    '';
+
+  const backgroundStyle =
+    backgroundImage
       ? `
-        linear-gradient(
-          rgba(0,0,0,.72),
-          rgba(0,0,0,.82)
-        ),
-        url("${escapeHtml(
-          settings.backgroundImage
-        )}")
+        body::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background:
+            linear-gradient(
+              rgba(0,0,0,.66),
+              rgba(0,0,0,.72)
+            ),
+            url('${escapeHtml(backgroundImage)}')
+            center center / cover no-repeat;
+          z-index: -2;
+        }
       `
       : `
-        linear-gradient(
-          135deg,
-          #080808,
-          #161616
-        )
+        body::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background:
+            linear-gradient(
+              135deg,
+              #0f0f0f,
+              #1d1d1d
+            );
+          z-index: -2;
+        }
       `;
 
   return `
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8">
 
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1"
+    content="width=device-width, initial-scale=1.0"
   >
 
   <title>
@@ -515,203 +834,206 @@ function layout(
 
     body {
       margin: 0;
-      min-height: 100vh;
-
       font-family:
         Arial,
         Helvetica,
         sans-serif;
-
       color: #fff;
-
-      background-image:
-        ${background};
-
-      background-size: cover;
-      background-position: center;
-      background-attachment: fixed;
-      background-repeat: no-repeat;
+      min-height: 100vh;
+      background: #111;
     }
 
-    body::before {
-      content: "";
+    ${backgroundStyle}
+
+    body::after {
+      content: '';
       position: fixed;
       inset: 0;
-      z-index: -1;
-
       background:
-        rgba(0,0,0,.20);
+        radial-gradient(
+          circle at top,
+          rgba(255,255,255,.06),
+          transparent 40%
+        );
+      z-index: -1;
+      pointer-events: none;
     }
 
     a {
       color: inherit;
-      text-decoration: none;
     }
 
-    button,
-    input,
-    textarea,
-    select {
-      font: inherit;
+    img {
+      max-width: 100%;
+      display: block;
     }
 
     .container {
-      width: min(
-        1120px,
-        calc(100% - 28px)
-      );
-
-      margin: auto;
+      width:
+        min(
+          1120px,
+          calc(100% - 28px)
+        );
+      margin: 0 auto;
     }
 
     .navbar {
       position: sticky;
       top: 0;
-      z-index: 50;
-
-      background:
-        rgba(5,5,5,.92);
-
+      z-index: 1000;
       backdrop-filter:
-        blur(12px);
-
+        blur(14px);
+      background:
+        rgba(10,10,10,.88);
       border-bottom:
-        1px solid #292929;
+        1px solid
+        rgba(255,255,255,.08);
     }
 
-    .navbar-inner {
-      min-height: 68px;
-
+    .nav-inner {
+      min-height: 70px;
       display: flex;
       align-items: center;
       justify-content:
         space-between;
-
-      gap: 16px;
+      gap: 18px;
     }
 
     .brand {
-      font-size: 20px;
-      font-weight: 900;
+      font-size: 21px;
+      font-weight: 800;
+      text-decoration: none;
+      letter-spacing: .2px;
     }
 
     .nav-links {
       display: flex;
-      align-items: center;
-      gap: 14px;
-
+      gap: 10px;
       flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .nav-links a {
-      color: #ddd;
-      font-weight: 700;
+      text-decoration: none;
+      padding: 10px 12px;
+      border-radius: 10px;
+      color: #eee;
+      font-size: 14px;
+    }
+
+    .nav-links a:hover {
+      background:
+        rgba(255,255,255,.08);
     }
 
     .hero {
       padding:
-        80px 0
-        60px;
-
+        85px 0 55px;
       text-align: center;
+    }
+
+    .hero-box {
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 35px 24px;
+      border:
+        1px solid
+        rgba(255,255,255,.12);
+      border-radius: 24px;
+      background:
+        rgba(12,12,12,.72);
+      backdrop-filter:
+        blur(12px);
+      box-shadow:
+        0 25px 80px
+        rgba(0,0,0,.35);
     }
 
     .hero h1 {
       margin:
-        0 0 14px;
-
+        0 0 15px;
       font-size:
         clamp(
-          38px,
-          8vw,
-          72px
+          34px,
+          7vw,
+          70px
         );
-
       line-height: 1;
     }
 
     .hero p {
-      max-width: 720px;
       margin:
-        0 auto 26px;
-
-      color: #ddd;
-
+        0 auto 25px;
+      max-width: 680px;
       font-size: 18px;
       line-height: 1.6;
+      color: #ddd;
     }
 
-    section {
+    .section {
       padding:
-        42px 0;
+        55px 0;
     }
 
     .section-title {
       margin:
-        0 0 24px;
-
+        0 0 8px;
+      text-align: center;
       font-size:
         clamp(
-          28px,
+          27px,
           5vw,
           42px
         );
     }
 
+    .section-subtitle {
+      margin:
+        0 auto 28px;
+      max-width: 720px;
+      text-align: center;
+      color: #d0d0d0;
+      line-height: 1.5;
+    }
+
     .grid {
       display: grid;
-
       grid-template-columns:
         repeat(
           auto-fit,
-          minmax(240px,1fr)
+          minmax(240px, 1fr)
         );
-
-      gap: 20px;
+      gap: 18px;
     }
 
     .card {
       overflow: hidden;
-
-      border:
-        1px solid #303030;
-
-      border-radius: 22px;
-
+      border-radius: 18px;
       background:
-        rgba(15,15,15,.92);
-
+        rgba(18,18,18,.88);
+      border:
+        1px solid
+        rgba(255,255,255,.1);
       box-shadow:
-        0 16px 40px
-        rgba(0,0,0,.28);
+        0 15px 40px
+        rgba(0,0,0,.22);
     }
 
     .card-image {
-      width: 100%;
-      height: 210px;
-
-      object-fit: cover;
-
-      display: block;
-
-      background: #222;
-    }
-
-    .card-placeholder {
-      height: 210px;
-
+      height: 215px;
       display: flex;
       align-items: center;
       justify-content: center;
-
       background:
-        linear-gradient(
-          135deg,
-          #191919,
-          #292929
-        );
-
+        rgba(255,255,255,.05);
+      overflow: hidden;
       font-size: 70px;
+    }
+
+    .card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .card-body {
@@ -721,218 +1043,129 @@ function layout(
     .card h3 {
       margin:
         0 0 10px;
-
       font-size: 23px;
     }
 
     .card p {
-      color: #ccc;
+      color: #d5d5d5;
       line-height: 1.5;
     }
 
     .price {
-      font-size: 20px;
-      font-weight: 900;
-
+      font-size: 23px;
+      font-weight: 800;
       margin:
         12px 0;
+    }
+
+    .muted {
+      color: #bbb;
     }
 
     .button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-
-      min-height: 46px;
-
-      padding:
-        11px 18px;
-
-      border: 0;
-      border-radius: 12px;
-
+      gap: 8px;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 11px;
       background: #fff;
-      color: #000;
-
-      font-weight: 900;
-
+      color: #111;
+      font-weight: 800;
+      text-decoration: none;
       cursor: pointer;
+      font-size: 15px;
     }
 
-    .button-dark {
-      background: #242424;
-      color: #fff;
+    .button:hover {
+      opacity: .9;
+    }
 
+    .button.dark {
+      background: #222;
+      color: white;
       border:
-        1px solid #3a3a3a;
+        1px solid
+        rgba(255,255,255,.12);
     }
 
-    .button-full {
+    .button.danger {
+      background: #b91c1c;
+      color: white;
+    }
+
+    .button.full {
       width: 100%;
     }
 
-    .form-box {
-      max-width: 760px;
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
-      margin:
-        0 auto;
-
-      padding: 24px;
-
+    .panel {
+      padding: 22px;
+      border-radius: 18px;
       border:
-        1px solid #303030;
-
-      border-radius: 22px;
-
+        1px solid
+        rgba(255,255,255,.1);
       background:
-        rgba(12,12,12,.94);
+        rgba(18,18,18,.9);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(
+          2,
+          minmax(0,1fr)
+        );
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .form-group.full {
+      grid-column:
+        1 / -1;
     }
 
     label {
-      display: block;
-
-      margin:
-        16px 0 7px;
-
-      font-weight: 800;
+      font-weight: 700;
+      font-size: 14px;
     }
 
     input,
     textarea,
     select {
       width: 100%;
-
-      padding:
-        13px 14px;
-
+      padding: 12px 13px;
+      border-radius: 10px;
       border:
-        1px solid #444;
-
-      border-radius: 11px;
-
-      background: #181818;
-      color: #fff;
-
+        1px solid
+        rgba(255,255,255,.15);
+      background: #111;
+      color: white;
       outline: none;
-    }
-
-    textarea {
-      min-height: 110px;
-      resize: vertical;
+      font: inherit;
     }
 
     input:focus,
     textarea:focus,
     select:focus {
-      border-color: #fff;
+      border-color:
+        rgba(255,255,255,.45);
     }
 
-    .social-grid {
-      display: grid;
-
-      grid-template-columns:
-        repeat(
-          4,
-          minmax(0,1fr)
-        );
-
-      gap: 14px;
-    }
-
-    .social-link {
-      min-height: 90px;
-
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-
-      gap: 8px;
-
-      border-radius: 18px;
-
-      background:
-        rgba(15,15,15,.94);
-
-      border:
-        1px solid #303030;
-
-      font-weight: 800;
-    }
-
-    .social-link svg {
-      width: 34px;
-      height: 34px;
-    }
-
-    .map {
-      width: 100%;
-      height: 360px;
-
-      border: 0;
-      border-radius: 20px;
-
-      display: block;
-    }
-
-    .course-detail-image {
-      width: 100%;
-      max-height: 500px;
-
-      object-fit: cover;
-
-      border-radius: 24px;
-
-      margin-bottom: 24px;
-    }
-
-    .admin-section {
-      margin:
-        24px 0;
-
-      padding: 22px;
-
-      border:
-        1px solid #333;
-
-      border-radius: 20px;
-
-      background:
-        rgba(10,10,10,.94);
-    }
-
-    .admin-item {
-      padding:
-        18px 0;
-
-      border-bottom:
-        1px solid #303030;
-    }
-
-    .admin-item:last-child {
-      border-bottom: 0;
-    }
-
-    .admin-image-preview {
-      width: 100%;
-      max-width: 320px;
-      height: 180px;
-
-      object-fit: cover;
-
-      border-radius: 14px;
-
-      margin-top: 10px;
-    }
-
-    .status-paid {
-      color: #72e59a;
-      font-weight: 900;
-    }
-
-    .status-pending {
-      color: #ffd166;
-      font-weight: 900;
+    textarea {
+      min-height: 110px;
+      resize: vertical;
     }
 
     .table-wrap {
@@ -942,63 +1175,158 @@ function layout(
     table {
       width: 100%;
       border-collapse: collapse;
-
-      min-width: 850px;
+      min-width: 760px;
     }
 
     th,
     td {
-      padding: 12px;
-
+      padding: 12px 10px;
       border-bottom:
-        1px solid #333;
-
+        1px solid
+        rgba(255,255,255,.1);
       text-align: left;
+      vertical-align: top;
     }
 
     th {
-      color: #aaa;
+      color: #ccc;
+      font-size: 13px;
     }
 
-    footer {
+    .admin-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .admin-item {
+      border:
+        1px solid
+        rgba(255,255,255,.1);
+      border-radius: 16px;
+      padding: 18px;
+      background:
+        rgba(255,255,255,.03);
+    }
+
+    .preview-image {
+      width: 110px;
+      height: 110px;
+      object-fit: cover;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      border:
+        1px solid
+        rgba(255,255,255,.1);
+    }
+
+    .social-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(
+          4,
+          minmax(0, 1fr)
+        );
+      gap: 14px;
+    }
+
+    .social-link {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+      text-decoration: none;
+      background:
+        rgba(18,18,18,.88);
+      border-radius: 17px;
+      border:
+        1px solid
+        rgba(255,255,255,.1);
+      gap: 10px;
+      font-weight: 700;
+    }
+
+    .social-link svg {
+      width: 34px;
+      height: 34px;
+      fill: currentColor;
+    }
+
+    .map {
+      width: 100%;
+      min-height: 380px;
+      border: 0;
+      border-radius: 18px;
+    }
+
+    .cart {
+      margin-top: 25px;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content:
+        space-between;
+      gap: 15px;
       padding:
-        45px 0;
+        12px 0;
+      border-bottom:
+        1px solid
+        rgba(255,255,255,.08);
+    }
 
+    .notice {
+      padding: 13px 15px;
+      border-radius: 10px;
+      background:
+        rgba(255,255,255,.07);
+      margin-bottom: 15px;
+    }
+
+    .footer {
+      padding:
+        40px 0;
       text-align: center;
-
       color: #aaa;
+      border-top:
+        1px solid
+        rgba(255,255,255,.08);
+      margin-top: 50px;
     }
 
     @media (
-      max-width: 700px
+      max-width: 720px
     ) {
-      .navbar-inner {
-        padding:
-          10px 0;
-
+      .nav-inner {
         align-items:
           flex-start;
+        flex-direction:
+          column;
+        padding:
+          14px 0;
+      }
 
-        flex-direction: column;
+      .nav-links {
+        width: 100%;
+        justify-content:
+          flex-start;
+      }
+
+      .hero {
+        padding-top: 45px;
+      }
+
+      .form-grid {
+        grid-template-columns:
+          1fr;
       }
 
       .social-grid {
         grid-template-columns:
           repeat(
             2,
-            1fr
+            minmax(0,1fr)
           );
-      }
-
-      .hero {
-        padding:
-          55px 0
-          35px;
-      }
-
-      .card-image,
-      .card-placeholder {
-        height: 190px;
       }
     }
   </style>
@@ -1006,14 +1334,42 @@ function layout(
 
 <body>
 
-  ${navbar()}
+  <header class="navbar">
+    <div class="container nav-inner">
+
+      <a
+        class="brand"
+        href="/"
+      >
+        Centro Constitución
+      </a>
+
+      <nav class="nav-links">
+        <a href="/#cursos">
+          Cursos
+        </a>
+
+        <a href="/#articulos">
+          Artículos
+        </a>
+
+        <a href="/#ubicacion">
+          Ubicación
+        </a>
+
+        <a href="/admin">
+          Admin
+        </a>
+      </nav>
+
+    </div>
+  </header>
 
   ${content}
 
-  <footer>
+  <footer class="footer">
     <div class="container">
-      Centro Constitución
-      <br>
+      Centro Constitución ·
       ${escapeHtml(ADDRESS)}
     </div>
   </footer>
@@ -1023,645 +1379,503 @@ function layout(
   `;
 }
 
-function navbar() {
-  return `
-    <nav class="navbar">
-      <div
-        class="container navbar-inner"
-      >
-        <a
-          class="brand"
-          href="/"
-        >
-          Centro Constitución
-        </a>
-
-        <div class="nav-links">
-          <a href="/#cursos">
-            Cursos
-          </a>
-
-          <a href="/#articulos">
-            Artículos
-          </a>
-
-          <a href="/#ubicacion">
-            Ubicación
-          </a>
-
-          <a href="/admin">
-            Admin
-          </a>
-        </div>
-      </div>
-    </nav>
-  `;
-}
-
-function socialSection() {
-  const icons =
-    socialIcons();
-
-  return `
-    <section id="redes">
-      <div class="container">
-
-        <h2 class="section-title">
-          Seguinos
-        </h2>
-
-        <div class="social-grid">
-
-          <a
-            class="social-link"
-            href="${FACEBOOK_URL}"
-            target="_blank"
-            rel="noopener"
-          >
-            ${icons.facebook}
-            Facebook
-          </a>
-
-          <a
-            class="social-link"
-            href="${INSTAGRAM_URL}"
-            target="_blank"
-            rel="noopener"
-          >
-            ${icons.instagram}
-            Instagram
-          </a>
-
-          <a
-            class="social-link"
-            href="${TIKTOK_URL}"
-            target="_blank"
-            rel="noopener"
-          >
-            ${icons.tiktok}
-            TikTok
-          </a>
-
-          <a
-            class="social-link"
-            href="${GOOGLE_URL}"
-            target="_blank"
-            rel="noopener"
-          >
-            ${icons.google}
-            Google
-          </a>
-
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-function locationSection() {
-  const mapQuery =
-    encodeURIComponent(
-      ADDRESS
-    );
-
-  const mapsOpen =
-    'https://www.google.com/maps/search/?api=1&query=' +
-    mapQuery;
-
-  return `
-    <section id="ubicacion">
-      <div class="container">
-
-        <h2 class="section-title">
-          ¿Dónde estamos?
-        </h2>
-
-        <p>
-          ${escapeHtml(ADDRESS)}
-        </p>
-
-        <iframe
-          class="map"
-          src="https://www.google.com/maps?q=${mapQuery}&output=embed"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-        ></iframe>
-
-        <div
-          style="
-            display:flex;
-            gap:12px;
-            flex-wrap:wrap;
-            margin-top:18px;
-          "
-        >
-          <a
-            class="button"
-            href="${mapsOpen}"
-            target="_blank"
-            rel="noopener"
-          >
-            Abrir ubicación
-          </a>
-
-          <a
-            class="button button-dark"
-            href="${GOOGLE_URL}"
-            target="_blank"
-            rel="noopener"
-          >
-            Ver reseñas
-          </a>
-        </div>
-
-      </div>
-    </section>
-  `;
-}
-function courseCards(
-  courses
+function courseImageHtml(
+  course
 ) {
-  return courses
-    .map(course => {
-      const imageHtml =
-        course.image
-          ? `
-            <img
-              class="card-image"
-              src="${escapeHtml(
-                course.image
-              )}"
-              alt="${escapeHtml(
-                course.name
-              )}"
-            >
+  if (course.image) {
+    return `
+      <img
+        src="${escapeHtml(course.image)}"
+        alt="${escapeHtml(course.name)}"
+      >
+    `;
+  }
+
+  return escapeHtml(
+    course.icon || '✂️'
+  );
+}
+
+function productImageHtml(
+  product
+) {
+  if (product.image) {
+    return `
+      <img
+        src="${escapeHtml(product.image)}"
+        alt="${escapeHtml(product.name)}"
+      >
+    `;
+  }
+
+  return escapeHtml(
+    product.icon || '🛍️'
+  );
+}
+
+function socialIcons() {
+  return `
+    <div class="social-grid">
+
+      <a
+        class="social-link"
+        href="${FACEBOOK_URL}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.45h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.77l-.44 2.89h-2.33v6.99A10 10 0 0 0 22 12"
+          />
+        </svg>
+
+        Facebook
+      </a>
+
+      <a
+        class="social-link"
+        href="${INSTAGRAM_URL}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7m10.5 1.5A1.5 1.5 0 1 1 16 7a1.5 1.5 0 0 1 1.5-1.5M12 7a5 5 0 1 1-5 5 5 5 0 0 1 5-5m0 2a3 3 0 1 0 3 3 3 3 0 0 0-3-3"
+          />
+        </svg>
+
+        Instagram
+      </a>
+
+      <a
+        class="social-link"
+        href="${TIKTOK_URL}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M16.6 5.82A4.28 4.28 0 0 1 14.88 3h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.27 0 .53.04.78.12V9.76a5.72 5.72 0 1 0 5 5.67V9.14a7.35 7.35 0 0 0 4.3 1.38V7.46a4.3 4.3 0 0 1-2.66-1.64"
+          />
+        </svg>
+
+        TikTok
+      </a>
+
+      <a
+        class="social-link"
+        href="${GOOGLE_URL}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M21.35 11.1H12v2.98h5.35c-.23 1.49-1.71 4.38-5.35 4.38A6.46 6.46 0 0 1 5.54 12 6.46 6.46 0 0 1 12 5.54c2.07 0 3.46.88 4.25 1.64l2.9-2.8A10.45 10.45 0 0 0 12 1.58 10.42 10.42 0 0 0 1.58 12 10.42 10.42 0 0 0 12 22.42c6.93 0 10.42-4.87 10.42-10.42 0-.7-.08-1.23-.17-1.75z"
+          />
+        </svg>
+
+        Google
+      </a>
+
+    </div>
+  `;
+}
+app.get(
+  '/',
+  async (
+    req,
+    res
+  ) => {
+    const [
+      courses,
+      products,
+      settings
+    ] = await Promise.all([
+      getCourses(),
+      getProducts(),
+      getSiteSettings()
+    ]);
+
+    const coursesHtml =
+      courses
+        .map(
+          course => `
+            <article class="card">
+              <div class="card-image">
+                ${courseImageHtml(course)}
+              </div>
+
+              <div class="card-body">
+                <h3>
+                  ${escapeHtml(course.name)}
+                </h3>
+
+                <p>
+                  ${escapeHtml(course.description)}
+                </p>
+
+                <p class="muted">
+                  <strong>
+                    Horarios:
+                  </strong>
+                  <br>
+                  ${
+                    course.schedules
+                      .map(
+                        schedule =>
+                          escapeHtml(schedule)
+                      )
+                      .join('<br>')
+                  }
+                </p>
+
+                <p>
+                  Inscripción:
+                  <strong>
+                    ${money(course.registration)}
+                  </strong>
+                </p>
+
+                <p>
+                  Cuota:
+                  <strong>
+                    ${money(course.monthlyFee)}
+                  </strong>
+                </p>
+
+                <a
+                  class="button"
+                  href="/course/${encodeURIComponent(course.id)}"
+                >
+                  Ver curso
+                </a>
+              </div>
+            </article>
           `
-          : `
-            <div
-              class="card-placeholder"
-            >
-              ${escapeHtml(
-                course.icon || '🎓'
-              )}
+        )
+        .join('');
+
+    const productsHtml =
+      products
+        .map(
+          product => `
+            <article class="card">
+              <div class="card-image">
+                ${productImageHtml(product)}
+              </div>
+
+              <div class="card-body">
+                <h3>
+                  ${escapeHtml(product.name)}
+                </h3>
+
+                <div class="price">
+                  ${money(product.price)}
+                </div>
+
+                <p class="muted">
+                  Stock:
+                  ${Number(product.stock || 0)}
+                </p>
+
+                <button
+                  class="button full"
+                  type="button"
+                  onclick='addToCart(${JSON.stringify({
+                    id:
+                      product.id,
+
+                    name:
+                      product.name,
+
+                    price:
+                      product.price
+                  })})'
+                  ${
+                    Number(
+                      product.stock || 0
+                    ) <= 0
+                      ? 'disabled'
+                      : ''
+                  }
+                >
+                  ${
+                    Number(
+                      product.stock || 0
+                    ) > 0
+                      ? 'Agregar al carrito'
+                      : 'Sin stock'
+                  }
+                </button>
+              </div>
+            </article>
+          `
+        )
+        .join('');
+
+    const content = `
+      <main>
+
+        <section class="hero">
+          <div class="container">
+
+            <div class="hero-box">
+              <h1>
+                Centro Constitución
+              </h1>
+
+              <p>
+                Cursos presenciales de peluquería,
+                barbería, colorimetría,
+                manicuría y pedicuría.
+                También encontrá herramientas
+                y artículos profesionales.
+              </p>
+
+              <div
+                class="actions"
+                style="
+                  justify-content:center;
+                "
+              >
+                <a
+                  class="button"
+                  href="#cursos"
+                >
+                  Ver cursos
+                </a>
+
+                <a
+                  class="button dark"
+                  href="#articulos"
+                >
+                  Ver artículos
+                </a>
+              </div>
             </div>
-          `;
 
-      const schedules =
-        course.schedules
-          .map(item => `
-            <li>
-              ${escapeHtml(item)}
-            </li>
-          `)
-          .join('');
+          </div>
+        </section>
 
-      return `
-        <article class="card">
+        <section
+          class="section"
+          id="cursos"
+        >
+          <div class="container">
 
-          ${imageHtml}
+            <h2 class="section-title">
+              Cursos
+            </h2>
 
-          <div class="card-body">
-
-            <h3>
-              ${escapeHtml(
-                course.name
-              )}
-            </h3>
-
-            <p>
-              ${escapeHtml(
-                course.description
-              )}
+            <p class="section-subtitle">
+              Elegí el curso que quieras
+              y consultá horarios,
+              inscripción y cuota.
             </p>
 
-            <ul>
-              ${schedules}
-            </ul>
-
-            <div class="price">
-              Matrícula:
-              ${money(
-                course.registration
-              )}
+            <div class="grid">
+              ${coursesHtml}
             </div>
 
-            <div>
-              Cuota:
-              ${money(
-                course.monthlyFee
-              )}
+          </div>
+        </section>
+
+        <section
+          class="section"
+          id="articulos"
+        >
+          <div class="container">
+
+            <h2 class="section-title">
+              Artículos
+            </h2>
+
+            <p class="section-subtitle">
+              Herramientas y productos
+              para peluquería y barbería.
+            </p>
+
+            <div class="grid">
+              ${productsHtml}
             </div>
 
             <div
+              class="panel cart"
+              id="cartPanel"
+            >
+              <h3>
+                Carrito
+              </h3>
+
+              <div id="cartItems">
+                <p class="muted">
+                  Tu carrito está vacío.
+                </p>
+              </div>
+
+              <div
+                id="cartTotal"
+                class="price"
+              >
+                Total: $0
+              </div>
+
+              <form
+                id="checkoutForm"
+                action="/checkout/products"
+                method="POST"
+              >
+
+                <input
+                  type="hidden"
+                  name="items"
+                  id="cartItemsInput"
+                  value="[]"
+                >
+
+                <div class="form-grid">
+
+                  <div class="form-group">
+                    <label>
+                      Nombre
+                    </label>
+
+                    <input
+                      type="text"
+                      name="buyerName"
+                      required
+                    >
+                  </div>
+
+                  <div class="form-group">
+                    <label>
+                      WhatsApp
+                    </label>
+
+                    <input
+                      type="tel"
+                      name="buyerWhatsapp"
+                      required
+                    >
+                  </div>
+
+                  <div class="form-group full">
+                    <button
+                      class="button"
+                      type="submit"
+                    >
+                      Comprar y pagar
+                    </button>
+                  </div>
+
+                </div>
+              </form>
+            </div>
+
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="container">
+
+            <h2 class="section-title">
+              Seguinos
+            </h2>
+
+            <p class="section-subtitle">
+              Encontranos en nuestras
+              redes sociales y mirá
+              nuestros comentarios en Google.
+            </p>
+
+            ${socialIcons()}
+
+          </div>
+        </section>
+
+        <section
+          class="section"
+          id="ubicacion"
+        >
+          <div class="container">
+
+            <h2 class="section-title">
+              Ubicación
+            </h2>
+
+            <p class="section-subtitle">
+              ${escapeHtml(ADDRESS)}
+            </p>
+
+            <iframe
+              class="map"
+              loading="lazy"
+              allowfullscreen
+              referrerpolicy="no-referrer-when-downgrade"
+              src="https://www.google.com/maps?q=${encodeURIComponent(ADDRESS)}&output=embed"
+            ></iframe>
+
+            <div
+              class="actions"
               style="
+                justify-content:center;
                 margin-top:18px;
               "
             >
               <a
                 class="button"
-                href="/curso/${encodeURIComponent(
-                  course.id
-                )}"
+                target="_blank"
+                rel="noopener noreferrer"
+                href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ADDRESS)}"
               >
-                Ver curso
+                Abrir ubicación
               </a>
             </div>
 
           </div>
-        </article>
-      `;
-    })
-    .join('');
-}
+        </section>
 
-function productCards(
-  products
-) {
-  return products
-    .map(product => {
-      const imageHtml =
-        product.image
-          ? `
-            <img
-              class="card-image"
-              src="${escapeHtml(
-                product.image
-              )}"
-              alt="${escapeHtml(
-                product.name
-              )}"
-            >
-          `
-          : `
-            <div
-              class="card-placeholder"
-            >
-              ${escapeHtml(
-                product.icon || '🛍️'
-              )}
-            </div>
-          `;
-
-      const productData =
-        JSON.stringify({
-          id: product.id,
-          name: product.name,
-          price: product.price
-        });
-
-      return `
-        <article class="card">
-
-          ${imageHtml}
-
-          <div class="card-body">
-
-            <h3>
-              ${escapeHtml(
-                product.name
-              )}
-            </h3>
-
-            <div class="price">
-              ${money(
-                product.price
-              )}
-            </div>
-
-            <p>
-              Stock:
-              ${Number(
-                product.stock
-              )}
-            </p>
-
-            <button
-              class="button button-full"
-              type="button"
-              data-product="${escapeHtml(
-                productData
-              )}"
-              onclick="addProductFromButton(this)"
-            >
-              Agregar al carrito
-            </button>
-
-          </div>
-        </article>
-      `;
-    })
-    .join('');
-}
-
-function courseDetailPage(
-  course
-) {
-  const imageHtml =
-    course.image
-      ? `
-        <img
-          class="course-detail-image"
-          src="${escapeHtml(
-            course.image
-          )}"
-          alt="${escapeHtml(
-            course.name
-          )}"
-        >
-      `
-      : `
-        <div
-          class="card-placeholder"
-          style="
-            border-radius:24px;
-            margin-bottom:24px;
-          "
-        >
-          ${escapeHtml(
-            course.icon || '🎓'
-          )}
-        </div>
-      `;
-
-  const scheduleOptions =
-    course.schedules
-      .map(item => `
-        <option
-          value="${escapeHtml(item)}"
-        >
-          ${escapeHtml(item)}
-        </option>
-      `)
-      .join('');
-
-  return `
-    <main>
-
-      <section>
-        <div class="container">
-
-          ${imageHtml}
-
-          <h1 class="section-title">
-            ${escapeHtml(
-              course.name
-            )}
-          </h1>
-
-          <p
-            style="
-              font-size:18px;
-              line-height:1.6;
-              color:#ddd;
-            "
-          >
-            ${escapeHtml(
-              course.description
-            )}
-          </p>
-
-          <p>
-            <strong>
-              Matrícula:
-            </strong>
-
-            ${money(
-              course.registration
-            )}
-          </p>
-
-          <p>
-            <strong>
-              Cuota mensual:
-            </strong>
-
-            ${money(
-              course.monthlyFee
-            )}
-          </p>
-
-        </div>
-      </section>
-
-      <section>
-        <div class="container">
-
-          <div class="form-box">
-
-            <h2>
-              Inscribirme
-            </h2>
-
-            <form
-              method="POST"
-              action="/inscription/start"
-            >
-
-              <input
-                type="hidden"
-                name="courseId"
-                value="${escapeHtml(
-                  course.id
-                )}"
-              >
-
-              <label>
-                Nombre
-              </label>
-
-              <input
-                type="text"
-                name="firstName"
-                required
-              >
-
-              <label>
-                Apellido
-              </label>
-
-              <input
-                type="text"
-                name="lastName"
-                required
-              >
-
-              <label>
-                Número de documento
-              </label>
-
-              <input
-                type="text"
-                name="document"
-                inputmode="numeric"
-                required
-              >
-
-              <label>
-                Fecha de nacimiento
-              </label>
-
-              <input
-                type="date"
-                name="birthDate"
-                required
-              >
-
-              <label>
-                Número de WhatsApp
-              </label>
-
-              <input
-                type="tel"
-                name="whatsapp"
-                required
-              >
-
-              <label>
-                Curso
-              </label>
-
-              <input
-                type="text"
-                value="${escapeHtml(
-                  course.name
-                )}"
-                readonly
-              >
-
-              <label>
-                Horario
-              </label>
-
-              <select
-                name="schedule"
-                required
-              >
-                ${scheduleOptions}
-              </select>
-
-              <button
-                class="button button-full"
-                type="submit"
-                style="
-                  margin-top:22px;
-                "
-              >
-                Inscribirme y pagar
-              </button>
-
-            </form>
-
-          </div>
-        </div>
-      </section>
-
-    </main>
-  `;
-}
-
-function cartSection() {
-  return `
-    <section id="carrito">
-      <div class="container">
-
-        <h2 class="section-title">
-          Carrito
-        </h2>
-
-        <div class="form-box">
-
-          <div id="cart-items">
-            Tu carrito está vacío.
-          </div>
-
-          <div
-            id="cart-total"
-            class="price"
-            style="
-              margin-top:20px;
-            "
-          >
-            Total: $0
-          </div>
-
-          <label>
-            Nombre
-          </label>
-
-          <input
-            id="buyer-name"
-            type="text"
-          >
-
-          <label>
-            WhatsApp
-          </label>
-
-          <input
-            id="buyer-whatsapp"
-            type="tel"
-          >
-
-          <button
-            class="button button-full"
-            type="button"
-            onclick="checkoutCart()"
-            style="
-              margin-top:20px;
-            "
-          >
-            Comprar y pagar
-          </button>
-
-        </div>
-      </div>
+      </main>
 
       <script>
-        var cart = [];
+        let cart = [];
 
-        function addProductFromButton(
-          button
+        function moneyClient(
+          value
         ) {
-          try {
-            var product =
-              JSON.parse(
-                button.dataset.product
-              );
+          return new Intl
+            .NumberFormat(
+              'es-AR',
+              {
+                style:
+                  'currency',
 
-            addToCart(product);
-          } catch {
-            alert(
-              'No se pudo agregar el artículo.'
+                currency:
+                  'ARS',
+
+                maximumFractionDigits:
+                  0
+              }
+            )
+            .format(
+              Number(value || 0)
             );
-          }
         }
 
         function addToCart(
           product
         ) {
-          var existing =
-            cart.find(function(item) {
-              return (
-                item.id ===
-                product.id
-              );
-            });
+          const existing =
+            cart.find(
+              item =>
+                item.id === product.id
+            );
 
           if (existing) {
             existing.quantity += 1;
           } else {
             cart.push({
-              id:
-                product.id,
-
-              name:
-                product.name,
-
-              price:
-                Number(
-                  product.price
-                ),
-
+              ...product,
               quantity: 1
             });
           }
@@ -1674,325 +1888,193 @@ function cartSection() {
         ) {
           cart =
             cart.filter(
-              function(item) {
-                return (
-                  item.id !== id
-                );
-              }
+              item =>
+                item.id !== id
             );
 
           renderCart();
         }
 
+        function changeQuantity(
+          id,
+          amount
+        ) {
+          const item =
+            cart.find(
+              entry =>
+                entry.id === id
+            );
+
+          if (!item) {
+            return;
+          }
+
+          item.quantity += amount;
+
+          if (
+            item.quantity <= 0
+          ) {
+            removeFromCart(id);
+            return;
+          }
+
+          renderCart();
+        }
+
         function renderCart() {
-          var box =
+          const container =
             document.getElementById(
-              'cart-items'
+              'cartItems'
             );
 
-          var totalBox =
+          const totalContainer =
             document.getElementById(
-              'cart-total'
+              'cartTotal'
             );
 
-          if (!cart.length) {
-            box.innerHTML =
-              'Tu carrito está vacío.';
+          const input =
+            document.getElementById(
+              'cartItemsInput'
+            );
 
-            totalBox.textContent =
+          if (
+            !container ||
+            !totalContainer ||
+            !input
+          ) {
+            return;
+          }
+
+          if (
+            cart.length === 0
+          ) {
+            container.innerHTML =
+              '<p class="muted">Tu carrito está vacío.</p>';
+
+            totalContainer.textContent =
               'Total: $0';
+
+            input.value =
+              '[]';
 
             return;
           }
 
-          box.innerHTML =
-            cart.map(
-              function(item) {
-                var subtotal =
-                  item.price *
-                  item.quantity;
+          container.innerHTML =
+            cart
+              .map(
+                item => \`
+                  <div class="cart-item">
+                    <div>
+                      <strong>
+                        \${item.name}
+                      </strong>
 
-                return (
-                  '<div style="' +
-                  'display:flex;' +
-                  'justify-content:space-between;' +
-                  'align-items:center;' +
-                  'gap:12px;' +
-                  'padding:12px 0;' +
-                  'border-bottom:1px solid #333;' +
-                  '">' +
+                      <div class="muted">
+                        \${moneyClient(item.price)}
+                        x
+                        \${item.quantity}
+                      </div>
+                    </div>
 
-                  '<div>' +
+                    <div class="actions">
+                      <button
+                        class="button dark"
+                        type="button"
+                        onclick="changeQuantity('\${item.id}', -1)"
+                      >
+                        -
+                      </button>
 
-                  '<strong>' +
-                  item.name +
-                  '</strong>' +
+                      <button
+                        class="button dark"
+                        type="button"
+                        onclick="changeQuantity('\${item.id}', 1)"
+                      >
+                        +
+                      </button>
 
-                  '<div style="color:#aaa;">' +
-                  'Cantidad: ' +
-                  item.quantity +
-                  '</div>' +
+                      <button
+                        class="button danger"
+                        type="button"
+                        onclick="removeFromCart('\${item.id}')"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  </div>
+                \`
+              )
+              .join('');
 
-                  '</div>' +
-
-                  '<div>' +
-
-                  '<strong>$' +
-                  subtotal.toLocaleString(
-                    'es-AR'
-                  ) +
-                  '</strong>' +
-
-                  '<button ' +
-                  'type="button" ' +
-                  'class="remove-cart-item" ' +
-                  'data-id="' +
-                  item.id +
-                  '" ' +
-                  'style="' +
-                  'display:block;' +
-                  'margin-top:6px;' +
-                  'background:none;' +
-                  'border:0;' +
-                  'color:#ff8a80;' +
-                  'cursor:pointer;' +
-                  '">' +
-                  'Quitar' +
-                  '</button>' +
-
-                  '</div>' +
-
-                  '</div>'
-                );
-              }
-            ).join('');
-
-          box
-            .querySelectorAll(
-              '.remove-cart-item'
-            )
-            .forEach(
-              function(button) {
-                button.addEventListener(
-                  'click',
-                  function() {
-                    removeFromCart(
-                      button.dataset.id
-                    );
-                  }
-                );
-              }
-            );
-
-          var total =
+          const total =
             cart.reduce(
-              function(sum, item) {
-                return (
-                  sum +
-                  item.price *
-                  item.quantity
-                );
-              },
+              (
+                sum,
+                item
+              ) =>
+                sum +
+                (
+                  Number(item.price) *
+                  Number(item.quantity)
+                ),
               0
             );
 
-          totalBox.textContent =
-            'Total: $' +
-            total.toLocaleString(
-              'es-AR'
+          totalContainer.textContent =
+            'Total: ' +
+            moneyClient(total);
+
+          input.value =
+            JSON.stringify(
+              cart.map(
+                item => ({
+                  id:
+                    item.id,
+
+                  quantity:
+                    item.quantity
+                })
+              )
             );
         }
 
-        async function checkoutCart() {
-          if (!cart.length) {
-            alert(
-              'Agregá al menos un artículo.'
-            );
+        document
+          .getElementById(
+            'checkoutForm'
+          )
+          ?.addEventListener(
+            'submit',
+            event => {
+              if (
+                cart.length === 0
+              ) {
+                event.preventDefault();
 
-            return;
-          }
-
-          var name =
-            document
-              .getElementById(
-                'buyer-name'
-              )
-              .value
-              .trim();
-
-          var whatsapp =
-            document
-              .getElementById(
-                'buyer-whatsapp'
-              )
-              .value
-              .trim();
-
-          if (
-            !name ||
-            !whatsapp
-          ) {
-            alert(
-              'Completá tu nombre y WhatsApp.'
-            );
-
-            return;
-          }
-
-          var response =
-            await fetch(
-              '/checkout/products',
-              {
-                method: 'POST',
-
-                headers: {
-                  'Content-Type':
-                    'application/json'
-                },
-
-                body:
-                  JSON.stringify({
-                    name:
-                      name,
-
-                    whatsapp:
-                      whatsapp,
-
-                    items:
-                      cart
-                  })
+                alert(
+                  'Agregá al menos un artículo al carrito.'
+                );
               }
-            );
-
-          var data =
-            await response.json();
-
-          if (!response.ok) {
-            alert(
-              data.error ||
-              'No se pudo iniciar el pago.'
-            );
-
-            return;
-          }
-
-          if (data.url) {
-            window.location.href =
-              data.url;
-          }
-        }
+            }
+          );
       </script>
-    </section>
-  `;
-}
-
-function homePage(
-  courses,
-  products,
-  settings
-) {
-  return layout(
-    'Centro Constitución',
-    `
-      <main>
-
-        <section class="hero">
-          <div class="container">
-
-            <h1>
-              Centro Constitución
-            </h1>
-
-            <p>
-              Cursos presenciales,
-              capacitación profesional
-              y artículos para peluquería
-              y barbería.
-            </p>
-
-            <a
-              class="button"
-              href="#cursos"
-            >
-              Ver cursos
-            </a>
-
-          </div>
-        </section>
-
-        <section id="cursos">
-          <div class="container">
-
-            <h2 class="section-title">
-              Cursos
-            </h2>
-
-            <div class="grid">
-              ${courseCards(
-                courses
-              )}
-            </div>
-
-          </div>
-        </section>
-
-        <section id="articulos">
-          <div class="container">
-
-            <h2 class="section-title">
-              Artículos
-            </h2>
-
-            <div class="grid">
-              ${productCards(
-                products
-              )}
-            </div>
-
-          </div>
-        </section>
-
-        ${cartSection()}
-
-        ${socialSection()}
-
-        ${locationSection()}
-
-      </main>
-    `,
-    settings
-  );
-}
-
-app.get(
-  '/',
-  async (
-    req,
-    res
-  ) => {
-    const [
-      courses,
-      products,
-      settings
-    ] =
-      await Promise.all([
-        getCourses(),
-        getProducts(),
-        getSiteSettings()
-      ]);
+    `;
 
     res.send(
-      homePage(
-        courses,
-        products,
-        settings
+      layout(
+        'Centro Constitución',
+        content,
+        {
+          backgroundImage:
+            settings.backgroundImage
+        }
       )
     );
   }
 );
 
 app.get(
-  '/curso/:id',
+  '/course/:id',
   async (
     req,
     res
@@ -2014,120 +2096,308 @@ app.get(
           layout(
             'Curso no encontrado',
             `
-              <main>
-                <section>
-                  <div class="container">
-
+              <main class="section">
+                <div class="container">
+                  <div class="panel">
                     <h1>
                       Curso no encontrado
                     </h1>
 
                     <a
                       class="button"
-                      href="/"
+                      href="/#cursos"
                     >
-                      Volver
+                      Volver a cursos
                     </a>
-
                   </div>
-                </section>
+                </div>
               </main>
             `
           )
         );
     }
 
-    const settings =
-      await getSiteSettings();
+    const scheduleOptions =
+      (
+        course.schedules
+          .length
+          ? course.schedules
+          : [
+              'Horario próximamente'
+            ]
+      )
+        .map(
+          schedule => `
+            <option
+              value="${escapeHtml(schedule)}"
+            >
+              ${escapeHtml(schedule)}
+            </option>
+          `
+        )
+        .join('');
+
+    const content = `
+      <main class="section">
+        <div class="container">
+
+          <div class="grid">
+
+            <article class="card">
+              <div class="card-image">
+                ${courseImageHtml(course)}
+              </div>
+
+              <div class="card-body">
+                <h1>
+                  ${escapeHtml(course.name)}
+                </h1>
+
+                <p>
+                  ${escapeHtml(course.description)}
+                </p>
+
+                <p>
+                  <strong>
+                    Inscripción:
+                  </strong>
+                  ${money(course.registration)}
+                </p>
+
+                <p>
+                  <strong>
+                    Cuota:
+                  </strong>
+                  ${money(course.monthlyFee)}
+                </p>
+
+                <p>
+                  <strong>
+                    Horarios:
+                  </strong>
+                  <br>
+
+                  ${
+                    course.schedules
+                      .map(
+                        schedule =>
+                          escapeHtml(schedule)
+                      )
+                      .join('<br>')
+                  }
+                </p>
+              </div>
+            </article>
+
+            <section class="panel">
+              <h2>
+                Inscribirme en este curso
+              </h2>
+
+              <form
+                action="/inscription/start"
+                method="POST"
+              >
+
+                <input
+                  type="hidden"
+                  name="courseId"
+                  value="${escapeHtml(course.id)}"
+                >
+
+                <div class="form-grid">
+
+                  <div class="form-group">
+                    <label>
+                      Nombre
+                    </label>
+
+                    <input
+                      type="text"
+                      name="firstName"
+                      required
+                    >
+                  </div>
+
+                  <div class="form-group">
+                    <label>
+                      Apellido
+                    </label>
+
+                    <input
+                      type="text"
+                      name="lastName"
+                      required
+                    >
+                  </div>
+
+                  <div class="form-group">
+                    <label>
+                      DNI
+                    </label>
+
+                    <input
+                      type="text"
+                      name="document"
+                      required
+                    >
+                  </div>
+
+                  <div class="form-group">
+                    <label>
+                      Fecha de nacimiento
+                    </label>
+
+                    <input
+                      type="date"
+                      name="birthDate"
+                      required
+                    >
+                  </div>
+
+                  <div class="form-group">
+                    <label>
+                      WhatsApp
+                    </label>
+
+                    <input
+                      type="tel"
+                      name="whatsapp"
+                      required
+                    >
+                  </div>
+
+                  <div class="form-group">
+                    <label>
+                      Curso
+                    </label>
+
+                    <input
+                      type="text"
+                      value="${escapeHtml(course.name)}"
+                      readonly
+                    >
+                  </div>
+
+                  <div class="form-group full">
+                    <label>
+                      Horario
+                    </label>
+
+                    <select
+                      name="schedule"
+                      required
+                    >
+                      ${scheduleOptions}
+                    </select>
+                  </div>
+
+                  <div class="form-group full">
+                    <button
+                      class="button full"
+                      type="submit"
+                    >
+                      Inscribirme y pagar
+                      ${money(course.registration)}
+                    </button>
+                  </div>
+
+                </div>
+              </form>
+            </section>
+
+          </div>
+
+        </div>
+      </main>
+    `;
 
     res.send(
       layout(
         course.name,
-        courseDetailPage(
-          course
-        ),
-        settings
+        content
       )
     );
   }
 );
-function createWhatsAppUrl(
-  inscription
-) {
-  const message =
-    [
-      'Hola, quiero confirmar mi inscripción en Centro Constitución.',
-      '',
-      'Nombre: ' +
-        inscription.firstName,
-      'Apellido: ' +
-        inscription.lastName,
-      'Documento: ' +
-        inscription.document,
-      'Fecha de nacimiento: ' +
-        inscription.birthDate,
-      'WhatsApp: ' +
-        inscription.whatsapp,
-      'Curso: ' +
-        inscription.courseName,
-      'Horario: ' +
-        inscription.schedule
-    ].join('\n');
-
-  return (
-    'https://wa.me/' +
-    BUSINESS_WHATSAPP +
-    '?text=' +
-    encodeURIComponent(
-      message
-    )
-  );
-}
-
 async function createMercadoPagoPreference(
   data
 ) {
   if (!MP_ACCESS_TOKEN) {
+    throw new Error(
+      'Mercado Pago no está configurado.'
+    );
+  }
+
+  const response =
+    await fetch(
+      'https://api.mercadopago.com/checkout/preferences',
+      {
+        method: 'POST',
+
+        headers: {
+          Authorization:
+            `Bearer ${MP_ACCESS_TOKEN}`,
+
+          'Content-Type':
+            'application/json'
+        },
+
+        body:
+          JSON.stringify(data)
+      }
+    );
+
+  const text =
+    await response.text();
+
+  if (!response.ok) {
+    console.error(
+      'Error Mercado Pago:',
+      response.status,
+      text
+    );
+
+    throw new Error(
+      'No se pudo crear el pago.'
+    );
+  }
+
+  return JSON.parse(text);
+}
+
+async function getMercadoPagoPayment(
+  paymentId
+) {
+  if (
+    !MP_ACCESS_TOKEN ||
+    !paymentId
+  ) {
     return null;
   }
 
   try {
     const response =
       await fetch(
-        'https://api.mercadopago.com/checkout/preferences',
+        `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,
         {
-          method: 'POST',
-
           headers: {
             Authorization:
-              `Bearer ${MP_ACCESS_TOKEN}`,
-
-            'Content-Type':
-              'application/json'
-          },
-
-          body:
-            JSON.stringify(data)
+              `Bearer ${MP_ACCESS_TOKEN}`
+          }
         }
       );
 
     if (!response.ok) {
-      const error =
-        await response.text();
-
-      console.error(
-        'Mercado Pago:',
-        response.status,
-        error
-      );
-
       return null;
     }
 
     return await response.json();
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
-      'Mercado Pago error:',
+      'Error verificando pago:',
       error
     );
 
@@ -2135,266 +2405,38 @@ async function createMercadoPagoPreference(
   }
 }
 
-app.post(
-  '/inscription/start',
-  async (
-    req,
-    res
-  ) => {
-    const {
-      firstName,
-      lastName,
-      document,
-      birthDate,
-      whatsapp,
-      courseId,
-      schedule
-    } = req.body;
-
-    if (
-      !firstName ||
-      !lastName ||
-      !document ||
-      !birthDate ||
-      !whatsapp ||
-      !courseId ||
-      !schedule
-    ) {
-      return res
-        .status(400)
-        .send(
-          layout(
-            'Datos incompletos',
-            `
-              <main>
-                <section>
-                  <div class="container">
-
-                    <h1>
-                      Faltan datos
-                    </h1>
-
-                    <p>
-                      Completá todos los campos.
-                    </p>
-
-                    <a
-                      class="button"
-                      href="/"
-                    >
-                      Volver
-                    </a>
-
-                  </div>
-                </section>
-              </main>
-            `
-          )
-        );
-    }
-
-    const courses =
-      await getCourses();
-
-    const course =
-      courses.find(
-        item =>
-          String(item.id) ===
-          String(courseId)
-      );
-
-    if (!course) {
-      return res
-        .status(404)
-        .send(
-          'Curso no encontrado'
-        );
-    }
-
-    const inscriptionId =
-      'ins-' +
-      Date.now() +
-      '-' +
-      Math.random()
-        .toString(36)
-        .slice(2, 8);
-
-    const inscription = {
-      id:
-        inscriptionId,
-
-      first_name:
-        String(
-          firstName
-        ).trim(),
-
-      last_name:
-        String(
-          lastName
-        ).trim(),
-
-      document:
-        String(
-          document
-        ).trim(),
-
-      birth_date:
-        String(
-          birthDate
-        ).trim(),
-
-      whatsapp:
-        String(
-          whatsapp
-        ).trim(),
-
-      course_id:
-        course.id,
-
-      course_name:
-        course.name,
-
-      schedule:
-        String(
-          schedule
-        ).trim(),
-
-      amount:
-        Number(
-          course.registration
-        ),
-
-      payment_status:
-        'pending',
-
-      created_at:
-        new Date()
-          .toISOString()
-    };
-
-    await supabaseRequest(
-      'inscriptions',
-      {
-        method: 'POST',
-
-        headers: {
-          Prefer:
-            'return=minimal'
-        },
-
-        body:
-          JSON.stringify(
-            inscription
-          )
-      }
-    );
-
-    const preference =
-      await createMercadoPagoPreference({
-        items: [
-          {
-            title:
-              'Inscripción - ' +
-              course.name,
-
-            quantity: 1,
-
-            currency_id:
-              'ARS',
-
-            unit_price:
-              Number(
-                course.registration
-              )
-          }
-        ],
-
-        external_reference:
-          inscriptionId,
-
-        back_urls: {
-          success:
-            PUBLIC_URL +
-            '/payment/success?inscription_id=' +
-            encodeURIComponent(
-              inscriptionId
-            ),
-
-          pending:
-            PUBLIC_URL +
-            '/payment/pending?inscription_id=' +
-            encodeURIComponent(
-              inscriptionId
-            ),
-
-          failure:
-            PUBLIC_URL +
-            '/payment/failure?inscription_id=' +
-            encodeURIComponent(
-              inscriptionId
-            )
-        },
-
-        auto_return:
-          'approved'
-      });
-
-    if (
-      !preference ||
-      !preference.init_point
-    ) {
-      return res
-        .status(500)
-        .send(
-          layout(
-            'Error de pago',
-            `
-              <main>
-                <section>
-                  <div class="container">
-
-                    <h1>
-                      No se pudo iniciar el pago
-                    </h1>
-
-                    <p>
-                      Revisá la configuración
-                      de Mercado Pago.
-                    </p>
-
-                    <a
-                      class="button"
-                      href="/curso/${encodeURIComponent(
-                        course.id
-                      )}"
-                    >
-                      Volver al curso
-                    </a>
-
-                  </div>
-                </section>
-              </main>
-            `
-          )
-        );
-    }
-
-    return res.redirect(
-      preference.init_point
-    );
+async function updateInscriptionStatus(
+  id,
+  status
+) {
+  if (!id) {
+    return;
   }
-);
 
-async function getInscriptionById(
+  await supabaseWrite(
+    `inscriptions?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+
+      body:
+        JSON.stringify({
+          payment_status:
+            status
+        })
+    }
+  );
+}
+
+async function getInscription(
   id
 ) {
+  if (!id) {
+    return null;
+  }
+
   const data =
     await supabaseRequest(
-      'inscriptions?id=eq.' +
-      encodeURIComponent(
-        id
-      ) +
-      '&select=*'
+      `inscriptions?id=eq.${encodeURIComponent(id)}&select=*`
     );
 
   if (
@@ -2407,22 +2449,18 @@ async function getInscriptionById(
   return null;
 }
 
-async function updateInscriptionStatus(
+async function updateOrderStatus(
   id,
   status
 ) {
-  return supabaseRequest(
-    'inscriptions?id=eq.' +
-    encodeURIComponent(
-      id
-    ),
+  if (!id) {
+    return;
+  }
+
+  await supabaseWrite(
+    `orders?id=eq.${encodeURIComponent(id)}`,
     {
       method: 'PATCH',
-
-      headers: {
-        Prefer:
-          'return=minimal'
-      },
 
       body:
         JSON.stringify({
@@ -2433,6 +2471,258 @@ async function updateInscriptionStatus(
   );
 }
 
+async function getOrder(
+  id
+) {
+  if (!id) {
+    return null;
+  }
+
+  const data =
+    await supabaseRequest(
+      `orders?id=eq.${encodeURIComponent(id)}&select=*`
+    );
+
+  if (
+    Array.isArray(data) &&
+    data[0]
+  ) {
+    return data[0];
+  }
+
+  return null;
+}
+
+app.post(
+  '/inscription/start',
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const {
+        firstName,
+        lastName,
+        document,
+        birthDate,
+        whatsapp,
+        courseId,
+        schedule
+      } = req.body;
+
+      if (
+        !firstName ||
+        !lastName ||
+        !document ||
+        !birthDate ||
+        !whatsapp ||
+        !courseId ||
+        !schedule
+      ) {
+        return res
+          .status(400)
+          .send(
+            layout(
+              'Faltan datos',
+              `
+                <main class="section">
+                  <div class="container">
+                    <div class="panel">
+                      <h1>
+                        Faltan datos
+                      </h1>
+
+                      <p>
+                        Completá todos los campos.
+                      </p>
+
+                      <a
+                        class="button"
+                        href="/course/${encodeURIComponent(courseId || '')}"
+                      >
+                        Volver
+                      </a>
+                    </div>
+                  </div>
+                </main>
+              `
+            )
+          );
+      }
+
+      const courses =
+        await getCourses();
+
+      const course =
+        courses.find(
+          item =>
+            String(item.id) ===
+            String(courseId)
+        );
+
+      if (!course) {
+        throw new Error(
+          'El curso no existe.'
+        );
+      }
+
+      const inscriptionId =
+        `ins-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`;
+
+      await supabaseWrite(
+        'inscriptions',
+        {
+          method: 'POST',
+
+          body:
+            JSON.stringify({
+              id:
+                inscriptionId,
+
+              first_name:
+                String(firstName).trim(),
+
+              last_name:
+                String(lastName).trim(),
+
+              document:
+                String(document).trim(),
+
+              birth_date:
+                birthDate,
+
+              whatsapp:
+                String(whatsapp).trim(),
+
+              course_id:
+                course.id,
+
+              course_name:
+                course.name,
+
+              schedule:
+                String(schedule).trim(),
+
+              amount:
+                Number(
+                  course.registration
+                ),
+
+              payment_status:
+                'pending',
+
+              created_at:
+                new Date()
+                  .toISOString()
+            })
+        }
+      );
+
+      const preference =
+        await createMercadoPagoPreference(
+          {
+            items: [
+              {
+                title:
+                  `Inscripción ${course.name}`,
+
+                quantity:
+                  1,
+
+                currency_id:
+                  'ARS',
+
+                unit_price:
+                  Number(
+                    course.registration
+                  )
+              }
+            ],
+
+            payer: {
+              name:
+                String(firstName).trim(),
+
+              surname:
+                String(lastName).trim()
+            },
+
+            external_reference:
+              inscriptionId,
+
+            back_urls: {
+              success:
+                `${PUBLIC_URL}/payment/success?inscription_id=${encodeURIComponent(inscriptionId)}`,
+
+              pending:
+                `${PUBLIC_URL}/payment/pending?inscription_id=${encodeURIComponent(inscriptionId)}`,
+
+              failure:
+                `${PUBLIC_URL}/payment/failure?inscription_id=${encodeURIComponent(inscriptionId)}`
+            },
+
+            auto_return:
+              'approved'
+          }
+        );
+
+      if (
+        !preference ||
+        !preference.init_point
+      ) {
+        throw new Error(
+          'Mercado Pago no devolvió un enlace de pago.'
+        );
+      }
+
+      return res.redirect(
+        preference.init_point
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
+
+      return res
+        .status(500)
+        .send(
+          layout(
+            'Error',
+            `
+              <main class="section">
+                <div class="container">
+                  <div class="panel">
+                    <h1>
+                      No se pudo iniciar la inscripción
+                    </h1>
+
+                    <p>
+                      ${escapeHtml(
+                        error.message ||
+                        'Ocurrió un error.'
+                      )}
+                    </p>
+
+                    <a
+                      class="button"
+                      href="/#cursos"
+                    >
+                      Volver a cursos
+                    </a>
+                  </div>
+                </div>
+              </main>
+            `
+          )
+        );
+    }
+  }
+);
+
 app.get(
   '/payment/success',
   async (
@@ -2441,39 +2731,69 @@ app.get(
   ) => {
     const inscriptionId =
       String(
-        req.query.inscription_id ||
-        ''
+        req.query
+          .inscription_id || ''
       );
 
-    if (!inscriptionId) {
-      return res.redirect('/');
+    const paymentId =
+      String(
+        req.query
+          .payment_id || ''
+      );
+
+    let approved =
+      false;
+
+    if (paymentId) {
+      const payment =
+        await getMercadoPagoPayment(
+          paymentId
+        );
+
+      approved =
+        payment &&
+        payment.status ===
+          'approved' &&
+        String(
+          payment.external_reference ||
+          ''
+        ) === inscriptionId;
     }
 
-    await updateInscriptionStatus(
-      inscriptionId,
-      'paid'
-    );
+    if (approved) {
+      try {
+        await updateInscriptionStatus(
+          inscriptionId,
+          'paid'
+        );
+      } catch (
+        error
+      ) {
+        console.error(error);
+      }
+    }
 
     const inscription =
-      await getInscriptionById(
+      await getInscription(
         inscriptionId
       );
 
-    if (!inscription) {
+    if (!approved) {
       return res.send(
         layout(
-          'Pago realizado',
+          'Pago en revisión',
           `
-            <main>
-              <section>
-                <div class="container">
-
+            <main class="section">
+              <div class="container">
+                <div class="panel">
                   <h1>
-                    Pago realizado
+                    Estamos verificando el pago
                   </h1>
 
                   <p>
-                    Tu pago fue recibido.
+                    Si Mercado Pago aprobó la operación,
+                    la inscripción quedará registrada
+                    como pagada.
                   </p>
 
                   <a
@@ -2482,128 +2802,79 @@ app.get(
                   >
                     Volver al inicio
                   </a>
-
                 </div>
-              </section>
+              </div>
             </main>
           `
         )
       );
     }
 
-    const whatsappUrl =
-      createWhatsAppUrl({
-        firstName:
-          inscription.first_name,
-
-        lastName:
-          inscription.last_name,
-
-        document:
-          inscription.document,
-
-        birthDate:
-          inscription.birth_date,
-
-        whatsapp:
-          inscription.whatsapp,
-
-        courseName:
-          inscription.course_name,
-
-        schedule:
-          inscription.schedule
-      });
+    const whatsappText =
+      inscription
+        ? encodeURIComponent(
+            `Hola, soy ${inscription.first_name} ${inscription.last_name}. Ya pagué la inscripción para ${inscription.course_name}, horario ${inscription.schedule}.`
+          )
+        : encodeURIComponent(
+            'Hola, ya pagué mi inscripción.'
+          );
 
     return res.send(
       layout(
         'Inscripción pagada',
         `
-          <main>
+          <main class="section">
+            <div class="container">
+              <div class="panel">
 
-            <section>
-              <div class="container">
+                <h1>
+                  Inscripción pagada ✅
+                </h1>
 
-                <div class="form-box">
+                <p>
+                  Tu pago fue aprobado.
+                </p>
 
-                  <h1>
-                    Inscripción pagada
-                  </h1>
+                ${
+                  inscription
+                    ? `
+                      <p>
+                        <strong>
+                          Curso:
+                        </strong>
+                        ${escapeHtml(inscription.course_name)}
+                      </p>
 
-                  <p class="status-paid">
-                    Pago aprobado.
-                  </p>
+                      <p>
+                        <strong>
+                          Horario:
+                        </strong>
+                        ${escapeHtml(inscription.schedule)}
+                      </p>
+                    `
+                    : ''
+                }
 
-                  <p>
-                    Ahora enviá tus datos
-                    por WhatsApp para
-                    terminar de confirmar
-                    la inscripción.
-                  </p>
-
-                  <p>
-                    <strong>Nombre:</strong>
-                    ${escapeHtml(
-                      inscription.first_name
-                    )}
-                    ${escapeHtml(
-                      inscription.last_name
-                    )}
-                  </p>
-
-                  <p>
-                    <strong>Documento:</strong>
-                    ${escapeHtml(
-                      inscription.document
-                    )}
-                  </p>
-
-                  <p>
-                    <strong>Fecha de nacimiento:</strong>
-                    ${escapeHtml(
-                      inscription.birth_date
-                    )}
-                  </p>
-
-                  <p>
-                    <strong>WhatsApp:</strong>
-                    ${escapeHtml(
-                      inscription.whatsapp
-                    )}
-                  </p>
-
-                  <p>
-                    <strong>Curso:</strong>
-                    ${escapeHtml(
-                      inscription.course_name
-                    )}
-                  </p>
-
-                  <p>
-                    <strong>Horario:</strong>
-                    ${escapeHtml(
-                      inscription.schedule
-                    )}
-                  </p>
-
+                <div class="actions">
                   <a
-                    class="button button-full"
-                    href="${escapeHtml(
-                      whatsappUrl
-                    )}"
+                    class="button"
                     target="_blank"
-                    rel="noopener"
-                    style="
-                      margin-top:18px;
-                    "
+                    rel="noopener noreferrer"
+                    href="https://wa.me/${encodeURIComponent(BUSINESS_WHATSAPP)}?text=${whatsappText}"
                   >
-                    Enviar inscripción por WhatsApp
+                    Enviar datos por WhatsApp
                   </a>
 
+                  <a
+                    class="button dark"
+                    href="/"
+                  >
+                    Volver al inicio
+                  </a>
                 </div>
-              </div>
-            </section>
 
+              </div>
+            </div>
           </main>
         `
       )
@@ -2619,46 +2890,47 @@ app.get(
   ) => {
     const inscriptionId =
       String(
-        req.query.inscription_id ||
-        ''
+        req.query
+          .inscription_id || ''
       );
 
-    if (inscriptionId) {
+    try {
       await updateInscriptionStatus(
         inscriptionId,
         'pending'
       );
+    } catch (
+      error
+    ) {
+      console.error(error);
     }
 
     res.send(
       layout(
         'Pago pendiente',
         `
-          <main>
-            <section>
-              <div class="container">
+          <main class="section">
+            <div class="container">
+              <div class="panel">
 
-                <div class="form-box">
+                <h1>
+                  Pago pendiente
+                </h1>
 
-                  <h1>
-                    Pago pendiente
-                  </h1>
+                <p>
+                  Mercado Pago todavía
+                  no confirmó el pago.
+                </p>
 
-                  <p class="status-pending">
-                    Mercado Pago todavía
-                    está procesando el pago.
-                  </p>
+                <a
+                  class="button"
+                  href="/"
+                >
+                  Volver al inicio
+                </a>
 
-                  <a
-                    class="button"
-                    href="/"
-                  >
-                    Volver al inicio
-                  </a>
-
-                </div>
               </div>
-            </section>
+            </div>
           </main>
         `
       )
@@ -2674,46 +2946,47 @@ app.get(
   ) => {
     const inscriptionId =
       String(
-        req.query.inscription_id ||
-        ''
+        req.query
+          .inscription_id || ''
       );
 
-    if (inscriptionId) {
+    try {
       await updateInscriptionStatus(
         inscriptionId,
         'failed'
       );
+    } catch (
+      error
+    ) {
+      console.error(error);
     }
 
     res.send(
       layout(
         'Pago rechazado',
         `
-          <main>
-            <section>
-              <div class="container">
+          <main class="section">
+            <div class="container">
+              <div class="panel">
 
-                <div class="form-box">
+                <h1>
+                  El pago no se completó
+                </h1>
 
-                  <h1>
-                    No se pudo realizar el pago
-                  </h1>
+                <p>
+                  Podés volver al curso
+                  e intentarlo nuevamente.
+                </p>
 
-                  <p>
-                    Podés volver al curso
-                    e intentarlo nuevamente.
-                  </p>
+                <a
+                  class="button"
+                  href="/#cursos"
+                >
+                  Volver a cursos
+                </a>
 
-                  <a
-                    class="button"
-                    href="/"
-                  >
-                    Volver al inicio
-                  </a>
-
-                </div>
               </div>
-            </section>
+            </div>
           </main>
         `
       )
@@ -2727,227 +3000,325 @@ app.post(
     req,
     res
   ) => {
-    const {
-      name,
-      whatsapp,
-      items
-    } = req.body;
+    try {
+      const buyerName =
+        String(
+          req.body
+            .buyerName || ''
+        ).trim();
 
-    if (
-      !name ||
-      !whatsapp ||
-      !Array.isArray(items) ||
-      !items.length
-    ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            'Faltan datos del pedido.'
-        });
-    }
+      const buyerWhatsapp =
+        String(
+          req.body
+            .buyerWhatsapp || ''
+        ).trim();
 
-    const products =
-      await getProducts();
+      let requestedItems = [];
 
-    const validatedItems = [];
-
-    for (
-      const requested
-      of items
-    ) {
-      const product =
-        products.find(
-          item =>
-            String(item.id) ===
-            String(
-              requested.id
-            )
-        );
-
-      if (!product) {
-        continue;
+      try {
+        requestedItems =
+          JSON.parse(
+            req.body.items ||
+            '[]'
+          );
+      } catch {
+        requestedItems = [];
       }
 
-      const quantity =
-        Math.max(
-          1,
-          Number(
-            requested.quantity ||
-            1
-          )
+      if (
+        !buyerName ||
+        !buyerWhatsapp ||
+        !Array.isArray(requestedItems) ||
+        requestedItems.length === 0
+      ) {
+        throw new Error(
+          'Completá tus datos y agregá al menos un artículo.'
+        );
+      }
+
+      const products =
+        await getProducts();
+
+      const orderItems = [];
+
+      for (
+        const requested of
+        requestedItems
+      ) {
+        const product =
+          products.find(
+            item =>
+              String(item.id) ===
+              String(requested.id)
+          );
+
+        if (!product) {
+          continue;
+        }
+
+        const quantity =
+          Math.max(
+            1,
+            Math.floor(
+              Number(
+                requested.quantity || 1
+              )
+            )
+          );
+
+        if (
+          Number(product.stock) <
+          quantity
+        ) {
+          throw new Error(
+            `No hay stock suficiente de ${product.name}.`
+          );
+        }
+
+        orderItems.push({
+          id:
+            product.id,
+
+          name:
+            product.name,
+
+          price:
+            Number(
+              product.price
+            ),
+
+          quantity
+        });
+      }
+
+      if (
+        orderItems.length === 0
+      ) {
+        throw new Error(
+          'No se encontraron artículos válidos.'
+        );
+      }
+
+      const total =
+        orderItems.reduce(
+          (
+            sum,
+            item
+          ) =>
+            sum +
+            (
+              item.price *
+              item.quantity
+            ),
+          0
         );
 
-      validatedItems.push({
-        id:
-          product.id,
+      const orderId =
+        `order-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`;
 
-        name:
-          product.name,
+      await supabaseWrite(
+        'orders',
+        {
+          method:
+            'POST',
 
-        price:
-          Number(
-            product.price
-          ),
+          body:
+            JSON.stringify({
+              id:
+                orderId,
 
-        quantity:
-          quantity
-      });
-    }
+              buyer_name:
+                buyerName,
 
-    if (
-      !validatedItems.length
-    ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            'No hay artículos válidos.'
-        });
-    }
+              buyer_whatsapp:
+                buyerWhatsapp,
 
-    const total =
-      validatedItems.reduce(
-        (
-          sum,
-          item
-        ) =>
-          sum +
-          item.price *
-          item.quantity,
-        0
+              items:
+                orderItems,
+
+              total:
+                total,
+
+              payment_status:
+                'pending',
+
+              created_at:
+                new Date()
+                  .toISOString()
+            })
+        }
       );
 
-    const orderId =
-      'order-' +
-      Date.now() +
-      '-' +
-      Math.random()
-        .toString(36)
-        .slice(2, 8);
+      const preference =
+        await createMercadoPagoPreference(
+          {
+            items:
+              orderItems.map(
+                item => ({
+                  title:
+                    item.name,
 
-    await supabaseRequest(
-      'orders',
-      {
-        method: 'POST',
+                  quantity:
+                    item.quantity,
 
-        headers: {
-          Prefer:
-            'return=minimal'
-        },
+                  currency_id:
+                    'ARS',
 
-        body:
-          JSON.stringify({
-            id:
+                  unit_price:
+                    item.price
+                })
+              ),
+
+            external_reference:
               orderId,
 
-            buyer_name:
-              String(
-                name
-              ).trim(),
+            back_urls: {
+              success:
+                `${PUBLIC_URL}/order/success?order_id=${encodeURIComponent(orderId)}`,
 
-            buyer_whatsapp:
-              String(
-                whatsapp
-              ).trim(),
+              pending:
+                `${PUBLIC_URL}/order/pending?order_id=${encodeURIComponent(orderId)}`,
 
-            items:
-              validatedItems,
+              failure:
+                `${PUBLIC_URL}/order/failure?order_id=${encodeURIComponent(orderId)}`
+            },
 
-            total:
-              total,
+            auto_return:
+              'approved'
+          }
+        );
 
-            payment_status:
-              'pending',
-
-            created_at:
-              new Date()
-                .toISOString()
-          })
+      if (
+        !preference ||
+        !preference.init_point
+      ) {
+        throw new Error(
+          'No se pudo crear el pago.'
+        );
       }
-    );
 
-    const preference =
-      await createMercadoPagoPreference({
-        items:
-          validatedItems.map(
-            item => ({
-              title:
-                item.name,
-
-              quantity:
-                item.quantity,
-
-              currency_id:
-                'ARS',
-
-              unit_price:
-                item.price
-            })
-          ),
-
-        external_reference:
-          orderId,
-
-        back_urls: {
-          success:
-            PUBLIC_URL +
-            '/order/success',
-
-          pending:
-            PUBLIC_URL +
-            '/order/pending',
-
-          failure:
-            PUBLIC_URL +
-            '/order/failure'
-        },
-
-        auto_return:
-          'approved'
-      });
-
-    if (
-      !preference ||
-      !preference.init_point
-    ) {
-      return res
-        .status(500)
-        .json({
-          error:
-            'No se pudo iniciar el pago.'
-        });
-    }
-
-    return res.json({
-      url:
+      return res.redirect(
         preference.init_point
-    });
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
+
+      return res
+        .status(400)
+        .send(
+          layout(
+            'Error en la compra',
+            `
+              <main class="section">
+                <div class="container">
+                  <div class="panel">
+
+                    <h1>
+                      No se pudo iniciar la compra
+                    </h1>
+
+                    <p>
+                      ${escapeHtml(
+                        error.message ||
+                        'Ocurrió un error.'
+                      )}
+                    </p>
+
+                    <a
+                      class="button"
+                      href="/#articulos"
+                    >
+                      Volver a artículos
+                    </a>
+
+                  </div>
+                </div>
+              </main>
+            `
+          )
+        );
+    }
   }
 );
 
 app.get(
   '/order/success',
-  (
+  async (
     req,
     res
   ) => {
-    res.send(
-      layout(
-        'Compra realizada',
-        `
-          <main>
-            <section>
-              <div class="container">
+    const orderId =
+      String(
+        req.query
+          .order_id || ''
+      );
 
-                <div class="form-box">
+    const paymentId =
+      String(
+        req.query
+          .payment_id || ''
+      );
+
+    let approved =
+      false;
+
+    if (paymentId) {
+      const payment =
+        await getMercadoPagoPayment(
+          paymentId
+        );
+
+      approved =
+        payment &&
+        payment.status ===
+          'approved' &&
+        String(
+          payment.external_reference ||
+          ''
+        ) === orderId;
+    }
+
+    if (approved) {
+      try {
+        await updateOrderStatus(
+          orderId,
+          'paid'
+        );
+      } catch (
+        error
+      ) {
+        console.error(error);
+      }
+    }
+
+    const order =
+      await getOrder(
+        orderId
+      );
+
+    if (!approved) {
+      return res.send(
+        layout(
+          'Pago en revisión',
+          `
+            <main class="section">
+              <div class="container">
+                <div class="panel">
 
                   <h1>
-                    Compra realizada
+                    Estamos verificando el pago
                   </h1>
 
-                  <p class="status-paid">
-                    El pago fue aprobado.
+                  <p>
+                    Si Mercado Pago aprobó la compra,
+                    aparecerá como pagada
+                    en el panel.
                   </p>
 
                   <a
@@ -2959,7 +3330,73 @@ app.get(
 
                 </div>
               </div>
-            </section>
+            </main>
+          `
+        )
+      );
+    }
+
+    const orderMessage =
+      order
+        ? encodeURIComponent(
+            `Hola, soy ${order.buyer_name}. Ya pagué mi compra por ${money(order.total)}. Pedido: ${order.id}.`
+          )
+        : encodeURIComponent(
+            'Hola, ya pagué mi compra.'
+          );
+
+    return res.send(
+      layout(
+        'Compra pagada',
+        `
+          <main class="section">
+            <div class="container">
+              <div class="panel">
+
+                <h1>
+                  Compra pagada ✅
+                </h1>
+
+                <p>
+                  Mercado Pago confirmó
+                  tu compra.
+                </p>
+
+                ${
+                  order
+                    ? `
+                      <p>
+                        <strong>
+                          Total:
+                        </strong>
+                        ${money(order.total)}
+                      </p>
+                    `
+                    : ''
+                }
+
+                <div class="actions">
+
+                  <a
+                    class="button"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href="https://wa.me/${encodeURIComponent(BUSINESS_WHATSAPP)}?text=${orderMessage}"
+                  >
+                    Enviar pedido por WhatsApp
+                  </a>
+
+                  <a
+                    class="button dark"
+                    href="/"
+                  >
+                    Volver al inicio
+                  </a>
+
+                </div>
+
+              </div>
+            </div>
           </main>
         `
       )
@@ -2969,31 +3406,53 @@ app.get(
 
 app.get(
   '/order/pending',
-  (
+  async (
     req,
     res
   ) => {
+    const orderId =
+      String(
+        req.query
+          .order_id || ''
+      );
+
+    try {
+      await updateOrderStatus(
+        orderId,
+        'pending'
+      );
+    } catch (
+      error
+    ) {
+      console.error(error);
+    }
+
     res.send(
       layout(
         'Pago pendiente',
         `
-          <main>
-            <section>
-              <div class="container">
+          <main class="section">
+            <div class="container">
+              <div class="panel">
 
                 <h1>
                   Pago pendiente
                 </h1>
 
+                <p>
+                  Mercado Pago todavía
+                  no confirmó la compra.
+                </p>
+
                 <a
                   class="button"
                   href="/"
                 >
-                  Volver
+                  Volver al inicio
                 </a>
 
               </div>
-            </section>
+            </div>
           </main>
         `
       )
@@ -3003,31 +3462,53 @@ app.get(
 
 app.get(
   '/order/failure',
-  (
+  async (
     req,
     res
   ) => {
+    const orderId =
+      String(
+        req.query
+          .order_id || ''
+      );
+
+    try {
+      await updateOrderStatus(
+        orderId,
+        'failed'
+      );
+    } catch (
+      error
+    ) {
+      console.error(error);
+    }
+
     res.send(
       layout(
         'Pago rechazado',
         `
-          <main>
-            <section>
-              <div class="container">
+          <main class="section">
+            <div class="container">
+              <div class="panel">
 
                 <h1>
-                  Pago rechazado
+                  El pago no se completó
                 </h1>
+
+                <p>
+                  Podés volver a los artículos
+                  e intentarlo nuevamente.
+                </p>
 
                 <a
                   class="button"
-                  href="/"
+                  href="/#articulos"
                 >
-                  Volver
+                  Volver a artículos
                 </a>
 
               </div>
-            </section>
+            </div>
           </main>
         `
       )
@@ -3040,62 +3521,75 @@ app.get(
     req,
     res
   ) => {
+    const content = `
+      <main class="section">
+        <div class="container">
+
+          <div
+            class="panel"
+            style="
+              max-width:520px;
+              margin:40px auto;
+            "
+          >
+
+            <h1>
+              Administrador
+            </h1>
+
+            <form
+              action="/admin/login"
+              method="POST"
+            >
+
+              <div class="form-grid">
+
+                <div class="form-group full">
+                  <label>
+                    Email
+                  </label>
+
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                  >
+                </div>
+
+                <div class="form-group full">
+                  <label>
+                    Contraseña
+                  </label>
+
+                  <input
+                    type="password"
+                    name="password"
+                    required
+                  >
+                </div>
+
+                <div class="form-group full">
+                  <button
+                    class="button full"
+                    type="submit"
+                  >
+                    Entrar
+                  </button>
+                </div>
+
+              </div>
+            </form>
+
+          </div>
+
+        </div>
+      </main>
+    `;
+
     res.send(
       layout(
-        'Ingresar al panel',
-        `
-          <main>
-            <section>
-              <div class="container">
-
-                <div class="form-box">
-
-                  <h1>
-                    Panel de administración
-                  </h1>
-
-                  <form
-                    method="POST"
-                    action="/admin/login"
-                  >
-
-                    <label>
-                      Email
-                    </label>
-
-                    <input
-                      type="email"
-                      name="email"
-                      required
-                    >
-
-                    <label>
-                      Contraseña
-                    </label>
-
-                    <input
-                      type="password"
-                      name="password"
-                      required
-                    >
-
-                    <button
-                      class="button button-full"
-                      type="submit"
-                      style="
-                        margin-top:20px;
-                      "
-                    >
-                      Ingresar
-                    </button>
-
-                  </form>
-
-                </div>
-              </div>
-            </section>
-          </main>
-        `
+        'Administrador',
+        content
       )
     );
   }
@@ -3107,14 +3601,17 @@ app.post(
     req,
     res
   ) => {
-    const {
-      email,
-      password
-    } = req.body;
+    const email =
+      String(
+        req.body.email || ''
+      ).trim();
+
+    const password =
+      String(
+        req.body.password || ''
+      );
 
     if (
-      !ADMIN_EMAIL ||
-      !ADMIN_PASSWORD ||
       email !== ADMIN_EMAIL ||
       password !== ADMIN_PASSWORD
     ) {
@@ -3122,28 +3619,30 @@ app.post(
         .status(401)
         .send(
           layout(
-            'Acceso incorrecto',
+            'Acceso denegado',
             `
-              <main>
-                <section>
-                  <div class="container">
+              <main class="section">
+                <div class="container">
+                  <div class="panel">
 
-                    <div class="form-box">
+                    <h1>
+                      Datos incorrectos
+                    </h1>
 
-                      <h1>
-                        Datos incorrectos
-                      </h1>
+                    <p>
+                      Revisá el correo
+                      y la contraseña.
+                    </p>
 
-                      <a
-                        class="button"
-                        href="/admin/login"
-                      >
-                        Intentar nuevamente
-                      </a>
+                    <a
+                      class="button"
+                      href="/admin/login"
+                    >
+                      Volver
+                    </a>
 
-                    </div>
                   </div>
-                </section>
+                </div>
               </main>
             `
           )
@@ -3163,7 +3662,6 @@ app.post(
           PUBLIC_URL.startsWith(
             'https://'
           ),
-
         maxAge:
           7 *
           24 *
@@ -3195,254 +3693,6 @@ app.get(
   }
 );
 
-async function getInscriptions() {
-  const data =
-    await supabaseRequest(
-      'inscriptions?select=*&order=created_at.desc'
-    );
-
-  if (
-    Array.isArray(data)
-  ) {
-    return data;
-  }
-
-  return [];
-}
-
-async function getOrders() {
-  const data =
-    await supabaseRequest(
-      'orders?select=*&order=created_at.desc'
-    );
-
-  if (
-    Array.isArray(data)
-  ) {
-    return data;
-  }
-
-  return [];
-}
-
-function inscriptionTable(
-  inscriptions
-) {
-  if (!inscriptions.length) {
-    return `
-      <p>
-        Todavía no hay
-        personas inscriptas.
-      </p>
-    `;
-  }
-
-  return `
-    <div class="table-wrap">
-      <table>
-
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>Documento</th>
-            <th>Nacimiento</th>
-            <th>WhatsApp</th>
-            <th>Curso</th>
-            <th>Horario</th>
-            <th>Pago</th>
-          </tr>
-        </thead>
-
-        <tbody>
-
-          ${inscriptions
-            .map(item => `
-              <tr>
-
-                <td>
-                  ${escapeHtml(
-                    item.first_name || ''
-                  )}
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    item.last_name || ''
-                  )}
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    item.document || ''
-                  )}
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    item.birth_date || ''
-                  )}
-                </td>
-
-                <td>
-                  <a
-                    href="https://wa.me/${escapeHtml(
-                      String(
-                        item.whatsapp || ''
-                      ).replace(
-                        /\D/g,
-                        ''
-                      )
-                    )}"
-                    target="_blank"
-                    rel="noopener"
-                  >
-                    ${escapeHtml(
-                      item.whatsapp || ''
-                    )}
-                  </a>
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    item.course_name || ''
-                  )}
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    item.schedule || ''
-                  )}
-                </td>
-
-                <td>
-                  ${
-                    item.payment_status ===
-                    'paid'
-                      ? `
-                        <span
-                          class="status-paid"
-                        >
-                          PAGADO
-                        </span>
-                      `
-                      : `
-                        <span
-                          class="status-pending"
-                        >
-                          ${escapeHtml(
-                            String(
-                              item.payment_status ||
-                              'pending'
-                            ).toUpperCase()
-                          )}
-                        </span>
-                      `
-                  }
-                </td>
-
-              </tr>
-            `)
-            .join('')}
-
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-function orderTable(
-  orders
-) {
-  if (!orders.length) {
-    return `
-      <p>
-        Todavía no hay pedidos.
-      </p>
-    `;
-  }
-
-  return `
-    <div class="table-wrap">
-
-      <table>
-
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>WhatsApp</th>
-            <th>Artículos</th>
-            <th>Total</th>
-            <th>Pago</th>
-          </tr>
-        </thead>
-
-        <tbody>
-
-          ${orders
-            .map(order => {
-              const items =
-                Array.isArray(
-                  order.items
-                )
-                  ? order.items
-                  : [];
-
-              return `
-                <tr>
-
-                  <td>
-                    ${escapeHtml(
-                      order.buyer_name || ''
-                    )}
-                  </td>
-
-                  <td>
-                    ${escapeHtml(
-                      order.buyer_whatsapp || ''
-                    )}
-                  </td>
-
-                  <td>
-                    ${items
-                      .map(item =>
-                        escapeHtml(
-                          item.name +
-                          ' x' +
-                          item.quantity
-                        )
-                      )
-                      .join('<br>')}
-                  </td>
-
-                  <td>
-                    ${money(
-                      order.total
-                    )}
-                  </td>
-
-                  <td>
-                    ${escapeHtml(
-                      String(
-                        order.payment_status ||
-                        'pending'
-                      ).toUpperCase()
-                    )}
-                  </td>
-
-                </tr>
-              `;
-            })
-            .join('')}
-
-        </tbody>
-
-      </table>
-
-    </div>
-  `;
-}
-
 app.get(
   '/admin',
   adminRequired,
@@ -3450,1031 +3700,1383 @@ app.get(
     req,
     res
   ) => {
-    const [
-      courses,
-      products,
-      settings,
-      inscriptions,
-      orders
-    ] =
-      await Promise.all([
+    try {
+      const [
+        courses,
+        products,
+        settings,
+        inscriptions,
+        orders
+      ] = await Promise.all([
         getCourses(),
         getProducts(),
         getSiteSettings(),
-        getInscriptions(),
-        getOrders()
+
+        supabaseRequest(
+          'inscriptions?select=*&order=created_at.desc'
+        ),
+
+        supabaseRequest(
+          'orders?select=*&order=created_at.desc'
+        )
       ]);
 
-    const courseForms =
-      courses
-        .map(course => `
-          <div class="admin-item">
+      const courseForms =
+        courses
+          .map(
+            course => `
+              <div class="admin-item">
 
-            <h3>
-              ${escapeHtml(
-                course.name
-              )}
-            </h3>
+                ${
+                  course.image
+                    ? `
+                      <img
+                        class="preview-image"
+                        src="${escapeHtml(course.image)}"
+                        alt="${escapeHtml(course.name)}"
+                      >
+                    `
+                    : ''
+                }
 
-            ${
-              course.image
-                ? `
-                  <img
-                    class="admin-image-preview"
-                    src="${escapeHtml(
-                      course.image
-                    )}"
-                    alt=""
-                  >
-                `
-                : ''
-            }
+                <h3>
+                  ${escapeHtml(course.name)}
+                </h3>
 
-            <form
-              method="POST"
-              action="/admin/course/update"
-            >
-
-              <input
-                type="hidden"
-                name="id"
-                value="${escapeHtml(
-                  course.id
-                )}"
-              >
-
-              <label>
-                Nombre
-              </label>
-
-              <input
-                name="name"
-                value="${escapeHtml(
-                  course.name
-                )}"
-                required
-              >
-
-              <label>
-                URL de la imagen
-              </label>
-
-              <input
-                type="url"
-                name="image"
-                value="${escapeHtml(
-                  course.image || ''
-                )}"
-                placeholder="https://..."
-              >
-
-              <label>
-                Descripción
-              </label>
-
-              <textarea
-                name="description"
-              >${escapeHtml(
-                course.description
-              )}</textarea>
-
-              <label>
-                Horarios
-              </label>
-
-              <textarea
-                name="schedules"
-              >${escapeHtml(
-                course.schedules.join(
-                  '\n'
-                )
-              )}</textarea>
-
-              <label>
-                Matrícula
-              </label>
-
-              <input
-                type="number"
-                name="registration"
-                value="${Number(
-                  course.registration
-                )}"
-              >
-
-              <label>
-                Cuota
-              </label>
-
-              <input
-                type="number"
-                name="monthlyFee"
-                value="${Number(
-                  course.monthlyFee
-                )}"
-              >
-
-              <button
-                class="button"
-                type="submit"
-                style="
-                  margin-top:16px;
-                "
-              >
-                Guardar curso
-              </button>
-
-            </form>
-
-          </div>
-        `)
-        .join('');
-
-    const productForms =
-      products
-        .map(product => `
-          <div class="admin-item">
-
-            <h3>
-              ${escapeHtml(
-                product.name
-              )}
-            </h3>
-
-            ${
-              product.image
-                ? `
-                  <img
-                    class="admin-image-preview"
-                    src="${escapeHtml(
-                      product.image
-                    )}"
-                    alt=""
-                  >
-                `
-                : ''
-            }
-
-            <form
-              method="POST"
-              action="/admin/product/update"
-            >
-
-              <input
-                type="hidden"
-                name="id"
-                value="${escapeHtml(
-                  product.id
-                )}"
-              >
-
-              <label>
-                Nombre
-              </label>
-
-              <input
-                name="name"
-                value="${escapeHtml(
-                  product.name
-                )}"
-                required
-              >
-
-              <label>
-                URL de la imagen
-              </label>
-
-              <input
-                type="url"
-                name="image"
-                value="${escapeHtml(
-                  product.image || ''
-                )}"
-                placeholder="https://..."
-              >
-
-              <label>
-                Precio
-              </label>
-
-              <input
-                type="number"
-                name="price"
-                value="${Number(
-                  product.price
-                )}"
-              >
-
-              <label>
-                Stock
-              </label>
-
-              <input
-                type="number"
-                name="stock"
-                value="${Number(
-                  product.stock
-                )}"
-              >
-
-              <button
-                class="button"
-                type="submit"
-                style="
-                  margin-top:16px;
-                "
-              >
-                Guardar artículo
-              </button>
-
-            </form>
-
-          </div>
-        `)
-        .join('');
-
-    res.send(
-      layout(
-        'Panel de administración',
-        `
-          <main>
-
-            <section>
-              <div class="container">
-
-                <div
-                  style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                    gap:15px;
-                    flex-wrap:wrap;
-                  "
+                <form
+                  action="/admin/course/update"
+                  method="POST"
+                  enctype="multipart/form-data"
                 >
-                  <h1 class="section-title">
-                    Panel de administración
-                  </h1>
 
-                  <a
-                    class="button button-dark"
-                    href="/admin/logout"
-                  >
-                    Cerrar sesión
-                  </a>
-                </div>
-
-                <div class="admin-section">
-
-                  <h2>
-                    Fondo de la página
-                  </h2>
-
-                  <p>
-                    Pegá la URL de la imagen
-                    que querés usar como fondo.
-                  </p>
-
-                  ${
-                    settings.backgroundImage
-                      ? `
-                        <img
-                          class="admin-image-preview"
-                          src="${escapeHtml(
-                            settings.backgroundImage
-                          )}"
-                          alt=""
-                        >
-                      `
-                      : ''
-                  }
-
-                  <form
-                    method="POST"
-                    action="/admin/settings"
+                  <input
+                    type="hidden"
+                    name="id"
+                    value="${escapeHtml(course.id)}"
                   >
 
-                    <label>
-                      URL de la foto de fondo
-                    </label>
-
-                    <input
-                      type="url"
-                      name="backgroundImage"
-                      value="${escapeHtml(
-                        settings.backgroundImage ||
-                        ''
-                      )}"
-                      placeholder="https://..."
-                    >
-
-                    <button
-                      class="button"
-                      type="submit"
-                      style="
-                        margin-top:16px;
-                      "
-                    >
-                      Cambiar fondo
-                    </button>
-
-                  </form>
-
-                </div>
-
-                <div class="admin-section">
-
-                  <h2>
-                    Agregar curso
-                  </h2>
-
-                  <form
-                    method="POST"
-                    action="/admin/course/add"
+                  <input
+                    type="hidden"
+                    name="currentImage"
+                    value="${escapeHtml(course.image || '')}"
                   >
 
-                    <label>
-                      Nombre
-                    </label>
+                  <div class="form-grid">
 
-                    <input
-                      name="name"
-                      required
-                    >
+                    <div class="form-group">
+                      <label>
+                        Nombre
+                      </label>
 
-                    <label>
-                      URL de la imagen
-                    </label>
+                      <input
+                        type="text"
+                        name="name"
+                        value="${escapeHtml(course.name)}"
+                        required
+                      >
+                    </div>
 
-                    <input
-                      type="url"
-                      name="image"
-                      placeholder="https://..."
-                    >
+                    <div class="form-group">
+                      <label>
+                        Icono
+                      </label>
 
-                    <label>
-                      Descripción
-                    </label>
+                      <input
+                        type="text"
+                        name="icon"
+                        value="${escapeHtml(course.icon || '')}"
+                      >
+                    </div>
 
-                    <textarea
-                      name="description"
-                    ></textarea>
+                    <div class="form-group full">
+                      <label>
+                        Foto
+                      </label>
 
-                    <label>
-                      Horarios
-                    </label>
+                      <input
+                        type="file"
+                        name="imageFile"
+                        accept="image/*"
+                      >
+                    </div>
 
-                    <textarea
-                      name="schedules"
-                      placeholder="Un horario por línea"
-                    ></textarea>
+                    <div class="form-group full">
+                      <label>
+                        Descripción
+                      </label>
 
-                    <label>
-                      Matrícula
-                    </label>
+                      <textarea
+                        name="description"
+                      >${escapeHtml(course.description || '')}</textarea>
+                    </div>
 
-                    <input
-                      type="number"
-                      name="registration"
-                      value="20000"
-                    >
+                    <div class="form-group full">
+                      <label>
+                        Horarios
+                      </label>
 
-                    <label>
-                      Cuota
-                    </label>
+                      <textarea
+                        name="schedules"
+                        placeholder="Un horario por línea"
+                      >${escapeHtml(
+                        course.schedules.join('\n')
+                      )}</textarea>
+                    </div>
 
-                    <input
-                      type="number"
-                      name="monthlyFee"
-                      value="80000"
-                    >
+                    <div class="form-group">
+                      <label>
+                        Inscripción
+                      </label>
 
-                    <button
-                      class="button"
-                      type="submit"
-                      style="
-                        margin-top:16px;
-                      "
-                    >
-                      + Agregar curso
-                    </button>
+                      <input
+                        type="number"
+                        name="registration"
+                        min="0"
+                        value="${Number(course.registration || 0)}"
+                        required
+                      >
+                    </div>
 
-                  </form>
+                    <div class="form-group">
+                      <label>
+                        Cuota
+                      </label>
 
-                </div>
+                      <input
+                        type="number"
+                        name="monthlyFee"
+                        min="0"
+                        value="${Number(course.monthlyFee || 0)}"
+                        required
+                      >
+                    </div>
 
-                <div class="admin-section">
+                    <div class="form-group full">
+                      <button
+                        class="button full"
+                        type="submit"
+                      >
+                        Guardar cambios
+                      </button>
+                    </div>
 
-                  <h2>
-                    Editar cursos
-                  </h2>
-
-                  ${courseForms}
-
-                </div>
-
-                <div class="admin-section">
-
-                  <h2>
-                    Agregar artículo
-                  </h2>
-
-                  <form
-                    method="POST"
-                    action="/admin/product/add"
-                  >
-
-                    <label>
-                      Nombre
-                    </label>
-
-                    <input
-                      name="name"
-                      required
-                    >
-
-                    <label>
-                      URL de la imagen
-                    </label>
-
-                    <input
-                      type="url"
-                      name="image"
-                      placeholder="https://..."
-                    >
-
-                    <label>
-                      Precio
-                    </label>
-
-                    <input
-                      type="number"
-                      name="price"
-                      required
-                    >
-
-                    <label>
-                      Stock
-                    </label>
-
-                    <input
-                      type="number"
-                      name="stock"
-                      value="0"
-                    >
-
-                    <button
-                      class="button"
-                      type="submit"
-                      style="
-                        margin-top:16px;
-                      "
-                    >
-                      + Agregar artículo
-                    </button>
-
-                  </form>
-
-                </div>
-
-                <div class="admin-section">
-
-                  <h2>
-                    Editar artículos
-                  </h2>
-
-                  ${productForms}
-
-                </div>
-
-                <div class="admin-section">
-
-                  <h2>
-                    Personas inscriptas
-                  </h2>
-
-                  ${inscriptionTable(
-                    inscriptions
-                  )}
-
-                </div>
-
-                <div class="admin-section">
-
-                  <h2>
-                    Pedidos de artículos
-                  </h2>
-
-                  ${orderTable(
-                    orders
-                  )}
-
-                </div>
+                  </div>
+                </form>
 
               </div>
-            </section>
+            `
+          )
+          .join('');
 
-          </main>
-        `,
-        settings
-      )
-    );
+      const productForms =
+        products
+          .map(
+            product => `
+              <div class="admin-item">
+
+                ${
+                  product.image
+                    ? `
+                      <img
+                        class="preview-image"
+                        src="${escapeHtml(product.image)}"
+                        alt="${escapeHtml(product.name)}"
+                      >
+                    `
+                    : ''
+                }
+
+                <h3>
+                  ${escapeHtml(product.name)}
+                </h3>
+
+                <form
+                  action="/admin/product/update"
+                  method="POST"
+                  enctype="multipart/form-data"
+                >
+
+                  <input
+                    type="hidden"
+                    name="id"
+                    value="${escapeHtml(product.id)}"
+                  >
+
+                  <input
+                    type="hidden"
+                    name="currentImage"
+                    value="${escapeHtml(product.image || '')}"
+                  >
+
+                  <div class="form-grid">
+
+                    <div class="form-group">
+                      <label>
+                        Nombre
+                      </label>
+
+                      <input
+                        type="text"
+                        name="name"
+                        value="${escapeHtml(product.name)}"
+                        required
+                      >
+                    </div>
+
+                    <div class="form-group">
+                      <label>
+                        Icono
+                      </label>
+
+                      <input
+                        type="text"
+                        name="icon"
+                        value="${escapeHtml(product.icon || '')}"
+                      >
+                    </div>
+
+                    <div class="form-group full">
+                      <label>
+                        Foto
+                      </label>
+
+                      <input
+                        type="file"
+                        name="imageFile"
+                        accept="image/*"
+                      >
+                    </div>
+
+                    <div class="form-group">
+                      <label>
+                        Precio
+                      </label>
+
+                      <input
+                        type="number"
+                        name="price"
+                        min="0"
+                        value="${Number(product.price || 0)}"
+                        required
+                      >
+                    </div>
+
+                    <div class="form-group">
+                      <label>
+                        Stock
+                      </label>
+
+                      <input
+                        type="number"
+                        name="stock"
+                        min="0"
+                        value="${Number(product.stock || 0)}"
+                        required
+                      >
+                    </div>
+
+                    <div class="form-group full">
+                      <button
+                        class="button full"
+                        type="submit"
+                      >
+                        Guardar cambios
+                      </button>
+                    </div>
+
+                  </div>
+                </form>
+
+              </div>
+            `
+          )
+          .join('');
+
+      const inscriptionsHtml =
+        Array.isArray(inscriptions) &&
+        inscriptions.length > 0
+          ? inscriptions
+              .map(
+                item => `
+                  <tr>
+                    <td>
+                      ${escapeHtml(
+                        `${item.first_name || ''} ${item.last_name || ''}`
+                      )}
+                    </td>
+
+                    <td>
+                      ${escapeHtml(item.document || '')}
+                    </td>
+
+                    <td>
+                      ${escapeHtml(item.whatsapp || '')}
+                    </td>
+
+                    <td>
+                      ${escapeHtml(item.course_name || '')}
+                    </td>
+
+                    <td>
+                      ${escapeHtml(item.schedule || '')}
+                    </td>
+
+                    <td>
+                      ${money(item.amount)}
+                    </td>
+
+                    <td>
+                      ${escapeHtml(item.payment_status || 'pending')}
+                    </td>
+                  </tr>
+                `
+              )
+              .join('')
+          : `
+            <tr>
+              <td colspan="7">
+                Todavía no hay inscripciones.
+              </td>
+            </tr>
+          `;
+
+      const ordersHtml =
+        Array.isArray(orders) &&
+        orders.length > 0
+          ? orders
+              .map(
+                item => `
+                  <tr>
+                    <td>
+                      ${escapeHtml(item.id || '')}
+                    </td>
+
+                    <td>
+                      ${escapeHtml(item.buyer_name || '')}
+                    </td>
+
+                    <td>
+                      ${escapeHtml(item.buyer_whatsapp || '')}
+                    </td>
+
+                    <td>
+                      ${money(item.total)}
+                    </td>
+
+                    <td>
+                      ${escapeHtml(item.payment_status || 'pending')}
+                    </td>
+                  </tr>
+                `
+              )
+              .join('')
+          : `
+            <tr>
+              <td colspan="5">
+                Todavía no hay pedidos.
+              </td>
+            </tr>
+          `;
+
+      const content = `
+        <main class="section">
+          <div class="container">
+
+            <div
+              class="actions"
+              style="
+                justify-content:space-between;
+                margin-bottom:20px;
+              "
+            >
+              <h1>
+                Panel administrador
+              </h1>
+
+              <a
+                class="button dark"
+                href="/admin/logout"
+              >
+                Cerrar sesión
+              </a>
+            </div>
+
+            <div class="admin-grid">
+
+              <section class="panel">
+                <h2>
+                  Fondo de la página
+                </h2>
+
+                ${
+                  settings.backgroundImage
+                    ? `
+                      <img
+                        class="preview-image"
+                        src="${escapeHtml(settings.backgroundImage)}"
+                        alt="Fondo actual"
+                      >
+                    `
+                    : ''
+                }
+
+                <form
+                  action="/admin/settings"
+                  method="POST"
+                  enctype="multipart/form-data"
+                >
+
+                  <input
+                    type="hidden"
+                    name="currentBackgroundImage"
+                    value="${escapeHtml(settings.backgroundImage || '')}"
+                  >
+
+                  <div class="form-grid">
+
+                    <div class="form-group full">
+                      <label>
+                        Elegir nueva foto de fondo
+                      </label>
+
+                      <input
+                        type="file"
+                        name="backgroundFile"
+                        accept="image/*"
+                      >
+                    </div>
+
+                    <div class="form-group full">
+                      <button
+                        class="button"
+                        type="submit"
+                      >
+                        Guardar fondo
+                      </button>
+                    </div>
+
+                  </div>
+                </form>
+              </section>
+
+              <section class="panel">
+                <h2>
+                  Agregar curso
+                </h2>
+
+                <form
+                  action="/admin/course/add"
+                  method="POST"
+                  enctype="multipart/form-data"
+                >
+
+                  <div class="form-grid">
+
+                    <div class="form-group">
+                      <label>
+                        Nombre
+                      </label>
+
+                      <input
+                        type="text"
+                        name="name"
+                        required
+                      >
+                    </div>
+
+                    <div class="form-group">
+                      <label>
+                        Icono
+                      </label>
+
+                      <input
+                        type="text"
+                        name="icon"
+                        value="✂️"
+                      >
+                    </div>
+
+                    <div class="form-group full">
+                      <label>
+                        Foto
+                      </label>
+
+                      <input
+                        type="file"
+                        name="imageFile"
+                        accept="image/*"
+                      >
+                    </div>
+
+                    <div class="form-group full">
+                      <label>
+                        Descripción
+                      </label>
+
+                      <textarea
+                        name="description"
+                      ></textarea>
+                    </div>
+
+                    <div class="form-group full">
+                      <label>
+                        Horarios
+                      </label>
+
+                      <textarea
+                        name="schedules"
+                        placeholder="Ejemplo:
+Martes de 16:00 a 18:00
+Sábado de 10:00 a 12:00"
+                      ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                      <label>
+                        Inscripción
+                      </label>
+
+                      <input
+                        type="number"
+                        name="registration"
+                        min="0"
+                        value="20000"
+                        required
+                      >
+                    </div>
+
+                    <div class="form-group">
+                      <label>
+                        Cuota
+                      </label>
+
+                      <input
+                        type="number"
+                        name="monthlyFee"
+                        min="0"
+                        value="80000"
+                        required
+                      >
+                    </div>
+
+                    <div class="form-group full">
+                      <button
+                        class="button full"
+                        type="submit"
+                      >
+                        Agregar curso
+                      </button>
+                    </div>
+
+                  </div>
+                </form>
+              </section>
+
+              <section class="panel">
+                <h2>
+                  Editar cursos
+                </h2>
+
+                <div class="admin-grid">
+                  ${courseForms}
+                </div>
+              </section>
+
+              <section class="panel">
+                <h2>
+                  Agregar artículo
+                </h2>
+
+                <form
+                  action="/admin/product/add"
+                  method="POST"
+                  enctype="multipart/form-data"
+                >
+
+                  <div class="form-grid">
+
+                    <div class="form-group">
+                      <label>
+                        Nombre
+                      </label>
+
+                      <input
+                        type="text"
+                        name="name"
+                        required
+                      >
+                    </div>
+
+                    <div class="form-group">
+                      <label>
+                        Icono
+                      </label>
+
+                      <input
+                        type="text"
+                        name="icon"
+                        value="🛍️"
+                      >
+                    </div>
+
+                    <div class="form-group full">
+                      <label>
+                        Foto
+                      </label>
+
+                      <input
+                        type="file"
+                        name="imageFile"
+                        accept="image/*"
+                      >
+                    </div>
+
+                    <div class="form-group">
+                      <label>
+                        Precio
+                      </label>
+
+                      <input
+                        type="number"
+                        name="price"
+                        min="0"
+                        required
+                      >
+                    </div>
+
+                    <div class="form-group">
+                      <label>
+                        Stock
+                      </label>
+
+                      <input
+                        type="number"
+                        name="stock"
+                        min="0"
+                        required
+                      >
+                    </div>
+
+                    <div class="form-group full">
+                      <button
+                        class="button full"
+                        type="submit"
+                      >
+                        Agregar artículo
+                      </button>
+                    </div>
+
+                  </div>
+                </form>
+              </section>
+
+              <section class="panel">
+                <h2>
+                  Editar artículos
+                </h2>
+
+                <div class="admin-grid">
+                  ${productForms}
+                </div>
+              </section>
+
+              <section class="panel">
+                <h2>
+                  Inscripciones
+                </h2>
+
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>
+                          Alumno
+                        </th>
+
+                        <th>
+                          DNI
+                        </th>
+
+                        <th>
+                          WhatsApp
+                        </th>
+
+                        <th>
+                          Curso
+                        </th>
+
+                        <th>
+                          Horario
+                        </th>
+
+                        <th>
+                          Importe
+                        </th>
+
+                        <th>
+                          Estado
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      ${inscriptionsHtml}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="panel">
+                <h2>
+                  Pedidos
+                </h2>
+
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>
+                          Pedido
+                        </th>
+
+                        <th>
+                          Cliente
+                        </th>
+
+                        <th>
+                          WhatsApp
+                        </th>
+
+                        <th>
+                          Total
+                        </th>
+
+                        <th>
+                          Estado
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      ${ordersHtml}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+            </div>
+
+          </div>
+        </main>
+      `;
+
+      res.send(
+        layout(
+          'Panel administrador',
+          content
+        )
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
+
+      res
+        .status(500)
+        .send(
+          errorPage(
+            'Error cargando el panel',
+            error.message
+          )
+        );
+    }
   }
 );
 app.post(
   '/admin/settings',
   adminRequired,
+  upload.single(
+    'backgroundFile'
+  ),
   async (
     req,
     res
   ) => {
-    const backgroundImage =
-      String(
-        req.body.backgroundImage || ''
-      ).trim();
+    try {
+      let backgroundImage =
+        String(
+          req.body
+            .currentBackgroundImage ||
+          ''
+        ).trim();
 
-    siteSettings.backgroundImage =
-      backgroundImage;
+      if (req.file) {
+        backgroundImage =
+          await uploadImageToSupabase(
+            req.file,
+            'backgrounds'
+          );
+      }
 
-    const existing =
-      await supabaseRequest(
-        'site_settings?key=eq.main&select=*'
+      const existing =
+        await supabaseRequest(
+          'site_settings?key=eq.main&select=*'
+        );
+
+      if (
+        Array.isArray(existing) &&
+        existing.length > 0
+      ) {
+        await supabaseWrite(
+          'site_settings?key=eq.main',
+          {
+            method:
+              'PATCH',
+
+            body:
+              JSON.stringify({
+                background_image:
+                  backgroundImage
+              })
+          }
+        );
+      } else {
+        await supabaseWrite(
+          'site_settings',
+          {
+            method:
+              'POST',
+
+            body:
+              JSON.stringify({
+                key:
+                  'main',
+
+                background_image:
+                  backgroundImage
+              })
+          }
+        );
+      }
+
+      siteSettings.backgroundImage =
+        backgroundImage;
+
+      res.redirect(
+        '/admin'
       );
-
-    if (
-      Array.isArray(existing) &&
-      existing.length
+    } catch (
+      error
     ) {
-      await supabaseRequest(
-        'site_settings?key=eq.main',
-        {
-          method: 'PATCH',
-
-          headers: {
-            Prefer:
-              'return=minimal'
-          },
-
-          body:
-            JSON.stringify({
-              background_image:
-                backgroundImage
-            })
-        }
+      console.error(
+        error
       );
-    } else {
-      await supabaseRequest(
-        'site_settings',
-        {
-          method: 'POST',
 
-          headers: {
-            Prefer:
-              'return=minimal'
-          },
-
-          body:
-            JSON.stringify({
-              key: 'main',
-
-              background_image:
-                backgroundImage
-            })
-        }
-      );
+      res
+        .status(500)
+        .send(
+          errorPage(
+            'No se pudo guardar el fondo',
+            error.message
+          )
+        );
     }
-
-    res.redirect('/admin');
   }
 );
 
 app.post(
   '/admin/course/add',
   adminRequired,
+  upload.single(
+    'imageFile'
+  ),
   async (
     req,
     res
   ) => {
-    const {
-      name,
-      image,
-      description,
-      schedules,
-      registration,
-      monthlyFee
-    } = req.body;
+    try {
+      const name =
+        String(
+          req.body.name || ''
+        ).trim();
 
-    const cleanName =
-      String(name || '')
-        .trim();
+      if (!name) {
+        throw new Error(
+          'El curso necesita un nombre.'
+        );
+      }
 
-    if (!cleanName) {
-      return res.redirect(
-        '/admin'
-      );
-    }
+      let image = '';
 
-    const baseId =
-      slugify(
-        cleanName
-      ) ||
-      'curso';
+      if (req.file) {
+        image =
+          await uploadImageToSupabase(
+            req.file,
+            'courses'
+          );
+      }
 
-    const id =
-      baseId +
-      '-' +
-      Date.now();
+      let schedules =
+        normalizeSchedules(
+          req.body.schedules
+        );
 
-    const scheduleList =
-      normalizeSchedules(
-        schedules
-      );
+      if (
+        schedules.length === 0
+      ) {
+        schedules = [
+          'Horario próximamente'
+        ];
+      }
 
-    const course = {
-      id:
+      const id =
+        `${slugify(name)}-${Date.now()}`;
+
+      const databaseCourse = {
         id,
 
-      icon:
-        '🎓',
+        icon:
+          String(
+            req.body.icon ||
+            '✂️'
+          ).trim(),
 
-      image:
-        String(
-          image || ''
-        ).trim(),
+        image,
 
-      name:
-        cleanName,
+        name,
 
-      description:
-        String(
-          description || ''
-        ).trim(),
+        description:
+          String(
+            req.body
+              .description ||
+            ''
+          ).trim(),
 
-      schedules:
-        scheduleList.length
-          ? scheduleList
-          : [
-              'Horario próximamente'
-            ],
+        schedules,
 
-      registration:
-        Number(
-          registration || 0
-        ),
+        registration:
+          Number(
+            req.body
+              .registration ||
+            0
+          ),
 
-      monthlyFee:
-        Number(
-          monthlyFee || 0
+        monthly_fee:
+          Number(
+            req.body
+              .monthlyFee ||
+            0
+          )
+      };
+
+      await supabaseWrite(
+        'courses',
+        {
+          method:
+            'POST',
+
+          body:
+            JSON.stringify(
+              databaseCourse
+            )
+        }
+      );
+
+      memoryCourses.push(
+        databaseCourseToApp(
+          databaseCourse
         )
-    };
+      );
 
-    memoryCourses.push(
-      course
-    );
+      res.redirect(
+        '/admin'
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
 
-    await supabaseRequest(
-      'courses',
-      {
-        method: 'POST',
-
-        headers: {
-          Prefer:
-            'return=minimal'
-        },
-
-        body:
-          JSON.stringify({
-            id:
-              course.id,
-
-            icon:
-              course.icon,
-
-            image:
-              course.image,
-
-            name:
-              course.name,
-
-            description:
-              course.description,
-
-            schedules:
-              course.schedules,
-
-            registration:
-              course.registration,
-
-            monthly_fee:
-              course.monthlyFee
-          })
-      }
-    );
-
-    res.redirect('/admin');
+      res
+        .status(500)
+        .send(
+          errorPage(
+            'No se pudo agregar el curso',
+            error.message
+          )
+        );
+    }
   }
 );
 
 app.post(
   '/admin/course/update',
   adminRequired,
+  upload.single(
+    'imageFile'
+  ),
   async (
     req,
     res
   ) => {
-    const {
-      id,
-      name,
-      image,
-      description,
-      schedules,
-      registration,
-      monthlyFee
-    } = req.body;
+    try {
+      const id =
+        String(
+          req.body.id || ''
+        ).trim();
 
-    const course =
-      memoryCourses.find(
-        item =>
-          String(item.id) ===
-          String(id)
+      const name =
+        String(
+          req.body.name || ''
+        ).trim();
+
+      if (
+        !id ||
+        !name
+      ) {
+        throw new Error(
+          'Faltan datos del curso.'
+        );
+      }
+
+      let image =
+        String(
+          req.body
+            .currentImage ||
+          ''
+        ).trim();
+
+      if (req.file) {
+        image =
+          await uploadImageToSupabase(
+            req.file,
+            'courses'
+          );
+      }
+
+      let schedules =
+        normalizeSchedules(
+          req.body.schedules
+        );
+
+      if (
+        schedules.length === 0
+      ) {
+        schedules = [
+          'Horario próximamente'
+        ];
+      }
+
+      const updatedCourse = {
+        icon:
+          String(
+            req.body.icon ||
+            '✂️'
+          ).trim(),
+
+        image,
+
+        name,
+
+        description:
+          String(
+            req.body
+              .description ||
+            ''
+          ).trim(),
+
+        schedules,
+
+        registration:
+          Number(
+            req.body
+              .registration ||
+            0
+          ),
+
+        monthly_fee:
+          Number(
+            req.body
+              .monthlyFee ||
+            0
+          )
+      };
+
+      await supabaseWrite(
+        `courses?id=eq.${encodeURIComponent(id)}`,
+        {
+          method:
+            'PATCH',
+
+          body:
+            JSON.stringify(
+              updatedCourse
+            )
+        }
       );
 
-    if (course) {
-      course.name =
-        String(
-          name || course.name
-        ).trim();
-
-      course.image =
-        String(
-          image || ''
-        ).trim();
-
-      course.description =
-        String(
-          description || ''
-        ).trim();
-
-      const scheduleList =
-        normalizeSchedules(
-          schedules
+      const index =
+        memoryCourses.findIndex(
+          item =>
+            String(item.id) ===
+            id
         );
 
-      course.schedules =
-        scheduleList.length
-          ? scheduleList
-          : [
-              'Horario próximamente'
-            ];
+      if (
+        index !== -1
+      ) {
+        memoryCourses[index] =
+          databaseCourseToApp({
+            id,
+            ...updatedCourse
+          });
+      }
 
-      course.registration =
-        Number(
-          registration || 0
-        );
+      res.redirect(
+        '/admin'
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
 
-      course.monthlyFee =
-        Number(
-          monthlyFee || 0
+      res
+        .status(500)
+        .send(
+          errorPage(
+            'No se pudo guardar el curso',
+            error.message
+          )
         );
     }
-
-    await supabaseRequest(
-      'courses?id=eq.' +
-      encodeURIComponent(
-        id
-      ),
-      {
-        method: 'PATCH',
-
-        headers: {
-          Prefer:
-            'return=minimal'
-        },
-
-        body:
-          JSON.stringify({
-            name:
-              String(
-                name || ''
-              ).trim(),
-
-            image:
-              String(
-                image || ''
-              ).trim(),
-
-            description:
-              String(
-                description || ''
-              ).trim(),
-
-            schedules:
-              normalizeSchedules(
-                schedules
-              ),
-
-            registration:
-              Number(
-                registration || 0
-              ),
-
-            monthly_fee:
-              Number(
-                monthlyFee || 0
-              )
-          })
-      }
-    );
-
-    res.redirect('/admin');
   }
 );
 
 app.post(
   '/admin/product/add',
   adminRequired,
+  upload.single(
+    'imageFile'
+  ),
   async (
     req,
     res
   ) => {
-    const {
-      name,
-      image,
-      price,
-      stock
-    } = req.body;
+    try {
+      const name =
+        String(
+          req.body.name || ''
+        ).trim();
 
-    const cleanName =
-      String(name || '')
-        .trim();
+      if (!name) {
+        throw new Error(
+          'El artículo necesita un nombre.'
+        );
+      }
 
-    if (!cleanName) {
-      return res.redirect(
-        '/admin'
-      );
-    }
+      let image = '';
 
-    const baseId =
-      slugify(
-        cleanName
-      ) ||
-      'articulo';
+      if (req.file) {
+        image =
+          await uploadImageToSupabase(
+            req.file,
+            'products'
+          );
+      }
 
-    const id =
-      baseId +
-      '-' +
-      Date.now();
+      const id =
+        `${slugify(name)}-${Date.now()}`;
 
-    const product = {
-      id:
+      const databaseProduct = {
         id,
 
-      icon:
-        '🛍️',
+        icon:
+          String(
+            req.body.icon ||
+            '🛍️'
+          ).trim(),
 
-      image:
-        String(
-          image || ''
-        ).trim(),
+        image,
 
-      name:
-        cleanName,
+        name,
 
-      price:
-        Number(
-          price || 0
-        ),
+        price:
+          Number(
+            req.body.price ||
+            0
+          ),
 
-      stock:
-        Number(
-          stock || 0
+        stock:
+          Number(
+            req.body.stock ||
+            0
+          )
+      };
+
+      await supabaseWrite(
+        'products',
+        {
+          method:
+            'POST',
+
+          body:
+            JSON.stringify(
+              databaseProduct
+            )
+        }
+      );
+
+      memoryProducts.push(
+        databaseProductToApp(
+          databaseProduct
         )
-    };
+      );
 
-    memoryProducts.push(
-      product
-    );
+      res.redirect(
+        '/admin'
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
 
-    await supabaseRequest(
-      'products',
-      {
-        method: 'POST',
-
-        headers: {
-          Prefer:
-            'return=minimal'
-        },
-
-        body:
-          JSON.stringify({
-            id:
-              product.id,
-
-            icon:
-              product.icon,
-
-            image:
-              product.image,
-
-            name:
-              product.name,
-
-            price:
-              product.price,
-
-            stock:
-              product.stock
-          })
-      }
-    );
-
-    res.redirect('/admin');
+      res
+        .status(500)
+        .send(
+          errorPage(
+            'No se pudo agregar el artículo',
+            error.message
+          )
+        );
+    }
   }
 );
 
 app.post(
   '/admin/product/update',
   adminRequired,
+  upload.single(
+    'imageFile'
+  ),
   async (
     req,
     res
   ) => {
-    const {
-      id,
-      name,
-      image,
-      price,
-      stock
-    } = req.body;
+    try {
+      const id =
+        String(
+          req.body.id || ''
+        ).trim();
 
-    const product =
-      memoryProducts.find(
-        item =>
-          String(item.id) ===
-          String(id)
+      const name =
+        String(
+          req.body.name || ''
+        ).trim();
+
+      if (
+        !id ||
+        !name
+      ) {
+        throw new Error(
+          'Faltan datos del artículo.'
+        );
+      }
+
+      let image =
+        String(
+          req.body
+            .currentImage ||
+          ''
+        ).trim();
+
+      if (req.file) {
+        image =
+          await uploadImageToSupabase(
+            req.file,
+            'products'
+          );
+      }
+
+      const updatedProduct = {
+        icon:
+          String(
+            req.body.icon ||
+            '🛍️'
+          ).trim(),
+
+        image,
+
+        name,
+
+        price:
+          Number(
+            req.body.price ||
+            0
+          ),
+
+        stock:
+          Number(
+            req.body.stock ||
+            0
+          )
+      };
+
+      await supabaseWrite(
+        `products?id=eq.${encodeURIComponent(id)}`,
+        {
+          method:
+            'PATCH',
+
+          body:
+            JSON.stringify(
+              updatedProduct
+            )
+        }
       );
 
-    if (product) {
-      product.name =
-        String(
-          name ||
-          product.name
-        ).trim();
-
-      product.image =
-        String(
-          image || ''
-        ).trim();
-
-      product.price =
-        Number(
-          price || 0
+      const index =
+        memoryProducts.findIndex(
+          item =>
+            String(item.id) ===
+            id
         );
 
-      product.stock =
-        Number(
-          stock || 0
+      if (
+        index !== -1
+      ) {
+        memoryProducts[index] =
+          databaseProductToApp({
+            id,
+            ...updatedProduct
+          });
+      }
+
+      res.redirect(
+        '/admin'
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
+
+      res
+        .status(500)
+        .send(
+          errorPage(
+            'No se pudo guardar el artículo',
+            error.message
+          )
         );
     }
-
-    await supabaseRequest(
-      'products?id=eq.' +
-      encodeURIComponent(
-        id
-      ),
-      {
-        method: 'PATCH',
-
-        headers: {
-          Prefer:
-            'return=minimal'
-        },
-
-        body:
-          JSON.stringify({
-            name:
-              String(
-                name || ''
-              ).trim(),
-
-            image:
-              String(
-                image || ''
-              ).trim(),
-
-            price:
-              Number(
-                price || 0
-              ),
-
-            stock:
-              Number(
-                stock || 0
-              )
-          })
-      }
-    );
-
-    res.redirect('/admin');
   }
 );
 
@@ -4501,28 +5103,65 @@ app.use(
         layout(
           'Página no encontrada',
           `
-            <main>
-              <section>
-                <div class="container">
+            <main class="section">
+              <div class="container">
+                <div class="panel">
 
-                  <div class="form-box">
+                  <h1>
+                    Página no encontrada
+                  </h1>
 
-                    <h1>
-                      Página no encontrada
-                    </h1>
+                  <a
+                    class="button"
+                    href="/"
+                  >
+                    Volver al inicio
+                  </a>
 
-                    <a
-                      class="button"
-                      href="/"
-                    >
-                      Volver al inicio
-                    </a>
-
-                  </div>
                 </div>
-              </section>
+              </div>
             </main>
           `
+        )
+      );
+  }
+);
+
+app.use(
+  (
+    error,
+    req,
+    res,
+    next
+  ) => {
+    console.error(
+      error
+    );
+
+    if (
+      error instanceof
+      multer.MulterError
+    ) {
+      return res
+        .status(400)
+        .send(
+          errorPage(
+            'Error con la imagen',
+            error.code ===
+              'LIMIT_FILE_SIZE'
+              ? 'La imagen es demasiado grande. El máximo es 8 MB.'
+              : error.message
+          )
+        );
+    }
+
+    return res
+      .status(500)
+      .send(
+        errorPage(
+          'Ocurrió un error',
+          error.message ||
+          'Intentá nuevamente.'
         )
       );
   }
@@ -4532,8 +5171,688 @@ app.listen(
   PORT,
   () => {
     console.log(
-      'Centro Constitución funcionando en puerto ' +
-      PORT
+      `Centro Constitución funcionando en puerto ${PORT}`
+    );
+  }
+);
+app.post(
+  '/admin/settings',
+  adminRequired,
+  upload.single(
+    'backgroundFile'
+  ),
+  async (
+    req,
+    res
+  ) => {
+    try {
+      let backgroundImage =
+        String(
+          req.body
+            .currentBackgroundImage ||
+          ''
+        ).trim();
+
+      if (req.file) {
+        backgroundImage =
+          await uploadImageToSupabase(
+            req.file,
+            'backgrounds'
+          );
+      }
+
+      const existing =
+        await supabaseRequest(
+          'site_settings?key=eq.main&select=*'
+        );
+
+      if (
+        Array.isArray(existing) &&
+        existing.length > 0
+      ) {
+        await supabaseWrite(
+          'site_settings?key=eq.main',
+          {
+            method:
+              'PATCH',
+
+            body:
+              JSON.stringify({
+                background_image:
+                  backgroundImage
+              })
+          }
+        );
+      } else {
+        await supabaseWrite(
+          'site_settings',
+          {
+            method:
+              'POST',
+
+            body:
+              JSON.stringify({
+                key:
+                  'main',
+
+                background_image:
+                  backgroundImage
+              })
+          }
+        );
+      }
+
+      siteSettings.backgroundImage =
+        backgroundImage;
+
+      res.redirect(
+        '/admin'
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
+
+      res
+        .status(500)
+        .send(
+          errorPage(
+            'No se pudo guardar el fondo',
+            error.message
+          )
+        );
+    }
+  }
+);
+
+app.post(
+  '/admin/course/add',
+  adminRequired,
+  upload.single(
+    'imageFile'
+  ),
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const name =
+        String(
+          req.body.name || ''
+        ).trim();
+
+      if (!name) {
+        throw new Error(
+          'El curso necesita un nombre.'
+        );
+      }
+
+      let image = '';
+
+      if (req.file) {
+        image =
+          await uploadImageToSupabase(
+            req.file,
+            'courses'
+          );
+      }
+
+      let schedules =
+        normalizeSchedules(
+          req.body.schedules
+        );
+
+      if (
+        schedules.length === 0
+      ) {
+        schedules = [
+          'Horario próximamente'
+        ];
+      }
+
+      const id =
+        `${slugify(name)}-${Date.now()}`;
+
+      const databaseCourse = {
+        id,
+
+        icon:
+          String(
+            req.body.icon ||
+            '✂️'
+          ).trim(),
+
+        image,
+
+        name,
+
+        description:
+          String(
+            req.body
+              .description ||
+            ''
+          ).trim(),
+
+        schedules,
+
+        registration:
+          Number(
+            req.body
+              .registration ||
+            0
+          ),
+
+        monthly_fee:
+          Number(
+            req.body
+              .monthlyFee ||
+            0
+          )
+      };
+
+      await supabaseWrite(
+        'courses',
+        {
+          method:
+            'POST',
+
+          body:
+            JSON.stringify(
+              databaseCourse
+            )
+        }
+      );
+
+      memoryCourses.push(
+        databaseCourseToApp(
+          databaseCourse
+        )
+      );
+
+      res.redirect(
+        '/admin'
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
+
+      res
+        .status(500)
+        .send(
+          errorPage(
+            'No se pudo agregar el curso',
+            error.message
+          )
+        );
+    }
+  }
+);
+
+app.post(
+  '/admin/course/update',
+  adminRequired,
+  upload.single(
+    'imageFile'
+  ),
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const id =
+        String(
+          req.body.id || ''
+        ).trim();
+
+      const name =
+        String(
+          req.body.name || ''
+        ).trim();
+
+      if (
+        !id ||
+        !name
+      ) {
+        throw new Error(
+          'Faltan datos del curso.'
+        );
+      }
+
+      let image =
+        String(
+          req.body
+            .currentImage ||
+          ''
+        ).trim();
+
+      if (req.file) {
+        image =
+          await uploadImageToSupabase(
+            req.file,
+            'courses'
+          );
+      }
+
+      let schedules =
+        normalizeSchedules(
+          req.body.schedules
+        );
+
+      if (
+        schedules.length === 0
+      ) {
+        schedules = [
+          'Horario próximamente'
+        ];
+      }
+
+      const updatedCourse = {
+        icon:
+          String(
+            req.body.icon ||
+            '✂️'
+          ).trim(),
+
+        image,
+
+        name,
+
+        description:
+          String(
+            req.body
+              .description ||
+            ''
+          ).trim(),
+
+        schedules,
+
+        registration:
+          Number(
+            req.body
+              .registration ||
+            0
+          ),
+
+        monthly_fee:
+          Number(
+            req.body
+              .monthlyFee ||
+            0
+          )
+      };
+
+      await supabaseWrite(
+        `courses?id=eq.${encodeURIComponent(id)}`,
+        {
+          method:
+            'PATCH',
+
+          body:
+            JSON.stringify(
+              updatedCourse
+            )
+        }
+      );
+
+      const index =
+        memoryCourses.findIndex(
+          item =>
+            String(item.id) ===
+            id
+        );
+
+      if (
+        index !== -1
+      ) {
+        memoryCourses[index] =
+          databaseCourseToApp({
+            id,
+            ...updatedCourse
+          });
+      }
+
+      res.redirect(
+        '/admin'
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
+
+      res
+        .status(500)
+        .send(
+          errorPage(
+            'No se pudo guardar el curso',
+            error.message
+          )
+        );
+    }
+  }
+);
+
+app.post(
+  '/admin/product/add',
+  adminRequired,
+  upload.single(
+    'imageFile'
+  ),
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const name =
+        String(
+          req.body.name || ''
+        ).trim();
+
+      if (!name) {
+        throw new Error(
+          'El artículo necesita un nombre.'
+        );
+      }
+
+      let image = '';
+
+      if (req.file) {
+        image =
+          await uploadImageToSupabase(
+            req.file,
+            'products'
+          );
+      }
+
+      const id =
+        `${slugify(name)}-${Date.now()}`;
+
+      const databaseProduct = {
+        id,
+
+        icon:
+          String(
+            req.body.icon ||
+            '🛍️'
+          ).trim(),
+
+        image,
+
+        name,
+
+        price:
+          Number(
+            req.body.price ||
+            0
+          ),
+
+        stock:
+          Number(
+            req.body.stock ||
+            0
+          )
+      };
+
+      await supabaseWrite(
+        'products',
+        {
+          method:
+            'POST',
+
+          body:
+            JSON.stringify(
+              databaseProduct
+            )
+        }
+      );
+
+      memoryProducts.push(
+        databaseProductToApp(
+          databaseProduct
+        )
+      );
+
+      res.redirect(
+        '/admin'
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
+
+      res
+        .status(500)
+        .send(
+          errorPage(
+            'No se pudo agregar el artículo',
+            error.message
+          )
+        );
+    }
+  }
+);
+
+app.post(
+  '/admin/product/update',
+  adminRequired,
+  upload.single(
+    'imageFile'
+  ),
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const id =
+        String(
+          req.body.id || ''
+        ).trim();
+
+      const name =
+        String(
+          req.body.name || ''
+        ).trim();
+
+      if (
+        !id ||
+        !name
+      ) {
+        throw new Error(
+          'Faltan datos del artículo.'
+        );
+      }
+
+      let image =
+        String(
+          req.body
+            .currentImage ||
+          ''
+        ).trim();
+
+      if (req.file) {
+        image =
+          await uploadImageToSupabase(
+            req.file,
+            'products'
+          );
+      }
+
+      const updatedProduct = {
+        icon:
+          String(
+            req.body.icon ||
+            '🛍️'
+          ).trim(),
+
+        image,
+
+        name,
+
+        price:
+          Number(
+            req.body.price ||
+            0
+          ),
+
+        stock:
+          Number(
+            req.body.stock ||
+            0
+          )
+      };
+
+      await supabaseWrite(
+        `products?id=eq.${encodeURIComponent(id)}`,
+        {
+          method:
+            'PATCH',
+
+          body:
+            JSON.stringify(
+              updatedProduct
+            )
+        }
+      );
+
+      const index =
+        memoryProducts.findIndex(
+          item =>
+            String(item.id) ===
+            id
+        );
+
+      if (
+        index !== -1
+      ) {
+        memoryProducts[index] =
+          databaseProductToApp({
+            id,
+            ...updatedProduct
+          });
+      }
+
+      res.redirect(
+        '/admin'
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
+
+      res
+        .status(500)
+        .send(
+          errorPage(
+            'No se pudo guardar el artículo',
+            error.message
+          )
+        );
+    }
+  }
+);
+
+app.get(
+  '/health',
+  (
+    req,
+    res
+  ) => {
+    res.json({
+      ok: true
+    });
+  }
+);
+
+app.use(
+  (
+    req,
+    res
+  ) => {
+    res
+      .status(404)
+      .send(
+        layout(
+          'Página no encontrada',
+          `
+            <main class="section">
+              <div class="container">
+                <div class="panel">
+
+                  <h1>
+                    Página no encontrada
+                  </h1>
+
+                  <a
+                    class="button"
+                    href="/"
+                  >
+                    Volver al inicio
+                  </a>
+
+                </div>
+              </div>
+            </main>
+          `
+        )
+      );
+  }
+);
+
+app.use(
+  (
+    error,
+    req,
+    res,
+    next
+  ) => {
+    console.error(
+      error
+    );
+
+    if (
+      error instanceof
+      multer.MulterError
+    ) {
+      return res
+        .status(400)
+        .send(
+          errorPage(
+            'Error con la imagen',
+            error.code ===
+              'LIMIT_FILE_SIZE'
+              ? 'La imagen es demasiado grande. El máximo es 8 MB.'
+              : error.message
+          )
+        );
+    }
+
+    return res
+      .status(500)
+      .send(
+        errorPage(
+          'Ocurrió un error',
+          error.message ||
+          'Intentá nuevamente.'
+        )
+      );
+  }
+);
+
+app.listen(
+  PORT,
+  () => {
+    console.log(
+      `Centro Constitución funcionando en puerto ${PORT}`
     );
   }
 );
